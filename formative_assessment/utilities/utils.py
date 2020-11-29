@@ -1,3 +1,10 @@
+""" Creates various helper function for preprocessing and processing.
+
+PreProcess class consists various functions such as tokenization, normalization etc.,
+Utilities consists of the helper functions for processing various functions, that do not
+go into any other classes.
+"""
+
 from typing import List
 
 import numpy as np
@@ -8,9 +15,17 @@ import string
 import pickle
 import tensorflow_hub as hub
 from bert_embedding import BertEmbedding
+from spacy.matcher import Matcher
 from flair.data import Sentence
 from flair.models import SequenceTagger
 from scipy.spatial.distance import cosine
+
+__author__ = "Sasi Kiran Gaddipati"
+__credits__ = []
+__license__ = ""
+__version__ = ""
+__last_modified__ = "23.11.2020"
+__status__ = "Development"
 
 
 class PreProcess:
@@ -83,7 +98,9 @@ class PreProcess:
 class Utilities:
     def __init__(self):
         self.nlp = spacy.load("en_core_web_lg")
-
+        neuralcoref.add_to_pipe(self.nlp)
+        tr = pytextrank.TextRank()
+        self.nlp.add_pipe(tr.PipelineComponent, name='textrank', last=True)
 
     @staticmethod
     def get_use_embed(tokens):
@@ -121,20 +138,38 @@ class Utilities:
     def get_cosine_similarity(array_1, array_2):
         return cosine(array_1, array_2)
 
-    def cosine_similarity_matrix(self, des_tokens, stu_tokens):
+    def cosine_similarity_matrix(self, tokens_a: List[str], tokens_b: List[str]):
+        """
+            Creates a matrix with similarity values from USE embeddings for each token in text_a to each word in text_b
+        :param tokens_a: List[str]
+             Tokens of text
+        :param tokens_b:
+            Tokens of text
+        :return: np array
+            Returns the matrix with similarity values
+        """
 
-        des_tokens_array = self.get_use_embed(des_tokens)
-        stu_tokens_array = self.get_use_embed(stu_tokens)
+        tokens_a_array = self.get_use_embed(tokens_a)
+        tokens_b_array = self.get_use_embed(tokens_b)
 
-        matrix = np.zeros((len(stu_tokens_array), len(des_tokens_array)))
+        matrix = np.zeros((len(tokens_b_array), len(tokens_a_array)))
 
-        for i in range(0, len(stu_tokens_array)):
-            for j in range(0, len(des_tokens_array)):
-                matrix[i][j] = 1 - self.get_cosine_similarity(stu_tokens_array[i], des_tokens_array[j])
+        for i in range(0, len(tokens_b_array)):
+            for j in range(0, len(tokens_a_array)):
+                matrix[i][j] = 1 - self.get_cosine_similarity(tokens_b_array[i], tokens_a_array[j])
         return matrix
 
     @staticmethod
     def get_frequency(desired_words, total_tokens):
+        """
+            Counts the occurrence of words in the total text
+        :param desired_words: List[str]
+            Required words to count
+        :param total_tokens: List[str]
+            All the tokens in the text with as many counts as occurred
+        :return: dict
+            Returns the dictionary of desired words as keys with corresponding count as values
+        """
         word_freq = {}
 
         for word in desired_words:
@@ -148,7 +183,13 @@ class Utilities:
         return word_freq
 
     def corefer_resolution(self, text):
-        neuralcoref.add_to_pipe(self.nlp)
+        """
+            Resolves the coreference resolution. Change the occurence of coreference to the actual word
+        :param text: str
+            Raw text that consists of
+        :return:
+        """
+
         doc = self.nlp(text.lower())
         return doc._.coref_resolved
 
@@ -230,8 +271,6 @@ class Utilities:
         :return: List[str]
             Returns list of strings of key phrases in the text
         """
-        tr = pytextrank.TextRank()
-        self.nlp.add_pipe(tr.PipelineComponent, name='textrank', last=True)
 
         doc = self.nlp(text)
 
@@ -241,3 +280,49 @@ class Utilities:
             phrases.append(p.text)
 
         return phrases
+
+    def is_passive_voice(self, sentence: str):
+        # Source: https://gist.github.com/armsp/30c2c1e19a0f1660944303cf079f831a
+
+        matcher = Matcher(self.nlp.vocab)
+        doc = self.nlp(sentence)
+
+        passive_rule = [{'DEP': 'nsubjpass', 'OP': '*'}, {'DEP': 'aux', 'OP': '*'}, {'DEP': 'auxpass'}, {'TAG': 'VBN'}]
+        matcher.add('Passive', None, passive_rule)
+        matches = matcher(doc)
+
+        if len(matches) == 0:
+            return False
+        else:
+            return True
+
+    def remove_articles(self, text):
+        articles = ["a", "an", "the"]
+
+        doc = self.nlp(text)
+        updated = ""
+
+        for token in doc:
+            if token.text not in articles:
+                updated += token.text + " "
+
+        updated_len = len(updated)
+
+        # Return by removing the last space
+        return updated[:updated_len - 1]
+
+    def get_common_keyphrases(self, text1, text2):
+
+        text1_kp = set(self.extract_phrases_tr(text1))
+        text2_kp = set(self.extract_phrases_tr(text2))
+
+        text1_updated = set()
+        text2_updated = set()
+
+        for text in text1_kp:
+            text1_updated.add(self.remove_articles(text))
+
+        for text in text2_kp:
+            text2_updated.add(self.remove_articles(text))
+
+        return text1_updated.intersection(text2_updated)
