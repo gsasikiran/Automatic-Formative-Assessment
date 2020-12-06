@@ -1,7 +1,7 @@
 from math import sqrt
+from typing import List, Dict
 
 import numpy as np
-from typing import List, Dict
 
 from formative_assessment.dataset_extractor import DataExtractor
 from formative_assessment.utilities.utils import PreProcess, Utilities
@@ -12,33 +12,33 @@ class WrongTermIdentification:
 
         self.PATH = PATH
         self.extract_data = DataExtractor(PATH)
+        self.pre_process = PreProcess()
+        self.utils = Utilities()
 
     def preprocess(self, id, student_answer: str, phrases=True):
 
-        pre_process = PreProcess()
         question = self.extract_data.get_questions(id)
         des_ans = self.extract_data.get_desired_answers(id)
 
-        des_demoted: str = pre_process.demote_ques(question, des_ans)
-        stu_demoted: str = pre_process.demote_ques(question, student_answer)
+        des_demoted: str = self.pre_process.demote_ques(question, des_ans)
+        stu_demoted: str = self.pre_process.demote_ques(question, student_answer)
 
         if phrases:
 
-            des_chunks: List[str] = pre_process.extract_phrases(des_demoted)
-            stu_chunks: List[str] = pre_process.extract_phrases(stu_demoted)
+            des_chunks: List[str] = self.utils.extract_phrases(des_demoted)
+            stu_chunks: List[str] = self.utils.extract_phrases(stu_demoted)
 
         else:
 
-            des_chunks = pre_process.tokenize(des_demoted)
-            stu_chunks = pre_process.tokenize(stu_demoted)
+            des_chunks = self.pre_process.tokenize(des_demoted)
+            stu_chunks = self.pre_process.tokenize(stu_demoted)
 
-        des_filtered = pre_process.remove_stopwords(des_chunks)
-        stu_filtered = pre_process.remove_stopwords(stu_chunks)
+        des_filtered = self.pre_process.remove_stopwords(des_chunks)
+        stu_filtered = self.pre_process.remove_stopwords(stu_chunks)
 
         return des_filtered, stu_filtered
 
-    @staticmethod
-    def align_tokens(des_tokens: List[str], stu_tokens: List[str]):
+    def align_tokens(self, des_tokens: List[str], stu_tokens: List[str]):
         """
             Generate the tuple, to generate the most similar tokens of students answers in the desired answer
         :param des_tokens: List
@@ -50,7 +50,7 @@ class WrongTermIdentification:
             Values: (most similar desired answer token, the cosine similarity between the tokens)
         """
 
-        cos_sim_matrix = Utilities().cosine_similarity_matrix(des_tokens, stu_tokens)
+        cos_sim_matrix = self.utils.cosine_similarity_matrix(des_tokens, stu_tokens)
 
         token_alignment = {}
 
@@ -64,7 +64,7 @@ class WrongTermIdentification:
 
     def _rank_and_sim(self, des_tokens, stu_tokens):
 
-        cos_sim_matrix = Utilities().cosine_similarity_matrix(des_tokens, stu_tokens)
+        cos_sim_matrix = self.utils.cosine_similarity_matrix(des_tokens, stu_tokens)
         aligned_tokens: Dict = self.align_tokens(des_tokens, stu_tokens)
 
         rank_dict = {}
@@ -120,7 +120,8 @@ class WrongTermIdentification:
         score_lw = {}
         # TODO: Remove punctuations or alter considering negative examples
         for token in stu_tokens:
-            score = (t_pw[token] / n_id) #* ((n_total + 1) - n_id) / (t_nw[token] + 1)  # Smoothing factor = 1; as t_nw can be 0
+            score = (t_pw[
+                         token] / n_id)  # * ((n_total + 1) - n_id) / (t_nw[token] + 1)  # Smoothing factor = 1; as t_nw can be 0
             score_lw[token] = sqrt(score)
 
         return score_lw

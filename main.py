@@ -6,7 +6,7 @@ if __name__ == '__main__':
     PATH = 'dataset/mohler/'
 
     df = DataExtractor(PATH)
-    id = 1.5
+    id = 2.3
     print('Id = ', id)
     question = df.get_questions(id)
     desired_answer = df.get_desired_answers(id)
@@ -21,8 +21,8 @@ if __name__ == '__main__':
 
         print(student_answer)
         extract_features = FeatureExtractor(id, student_answer, dataset_path=PATH)
-        extract_features.get_wrong_terms()
-        extract_features.is_wrong_answer() # Wrong answers work only when get_wrong_terms method is run, else returns None
+        # extract_features.get_wrong_terms()
+        # extract_features.is_wrong_answer() # Wrong answers work only when get_wrong_terms method is run, else returns None
         extract_features.get_interchanged_terms()
         print("----------------------------------------------------------")
 

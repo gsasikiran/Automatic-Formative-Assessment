@@ -1,6 +1,7 @@
 from feature_base.wrong_term_identification import WrongTermIdentification
 from feature_base.terms_interchange import InterchangeOfTerms
 from formative_assessment.dataset_extractor import DataExtractor
+from formative_assessment.utilities.utils import Utilities
 
 
 
@@ -89,5 +90,19 @@ class FeatureExtractor:
         :return:
         """
         iot = InterchangeOfTerms()
-        ques_phrases = iot.get_question_terms(self.question)
+        utils = Utilities()
+
+        heads = iot.get_topics(self.question, self.des_ans)
+        # TODO: if the heads are null, then we assign the best keyphrase as the head and corresponding verbs as the tree
+        des_ans_rel = iot.generate_tree(heads, self.des_ans)
+        stu_ans_rel = iot.generate_tree(heads, self.stu_ans)
+
+        print(des_ans_rel)
+        print(stu_ans_rel)
+
+
+
+
+
+
 
