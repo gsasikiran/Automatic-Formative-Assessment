@@ -4,34 +4,36 @@ from typing import List, Dict
 import numpy as np
 
 from formative_assessment.dataset_extractor import DataExtractor
-from formative_assessment.utilities.utils import PreProcess, Utilities
-
+from formative_assessment.utilities.utils import Utilities
+from formative_assessment.utilities.preprocessing import PreProcess
+from formative_assessment.utilities.embed import Embedding
 
 class WrongTermIdentification:
-    def __init__(self, PATH='dataset/mohler/'):
+    def __init__(self, PATH: str ='dataset/mohler/'):
 
         self.PATH = PATH
         self.extract_data = DataExtractor(PATH)
         self.pre_process = PreProcess()
         self.utils = Utilities()
+        self.embed = Embedding()
 
-    def preprocess(self, id, student_answer: str, phrases=True):
+    def preprocess(self, id, student_answer: str, get_phrases=True):
 
-        question = self.extract_data.get_questions(id)
-        des_ans = self.extract_data.get_desired_answers(id)
+        question: str = self.extract_data.get_questions(id)
+        des_ans: str = self.extract_data.get_desired_answers(id)
 
         des_demoted: str = self.pre_process.demote_ques(question, des_ans)
         stu_demoted: str = self.pre_process.demote_ques(question, student_answer)
 
-        if phrases:
+        if get_phrases:
 
             des_chunks: List[str] = self.utils.extract_phrases(des_demoted)
             stu_chunks: List[str] = self.utils.extract_phrases(stu_demoted)
 
         else:
 
-            des_chunks = self.pre_process.tokenize(des_demoted)
-            stu_chunks = self.pre_process.tokenize(stu_demoted)
+            des_chunks: List[str] = self.pre_process.tokenize(des_demoted)
+            stu_chunks: List[str] = self.pre_process.tokenize(stu_demoted)
 
         des_filtered = self.pre_process.remove_stopwords(des_chunks)
         stu_filtered = self.pre_process.remove_stopwords(stu_chunks)
@@ -40,7 +42,7 @@ class WrongTermIdentification:
 
     def align_tokens(self, des_tokens: List[str], stu_tokens: List[str]):
         """
-            Generate the tuple, to generate the most similar tokens of students answers in the desired answer
+            Generate the tuple of most similar tokens of students answers in the desired answer
         :param des_tokens: List
             List of desired answer's tokens
         :param stu_tokens: List
@@ -50,9 +52,12 @@ class WrongTermIdentification:
             Values: (most similar desired answer token, the cosine similarity between the tokens)
         """
 
-        cos_sim_matrix = self.utils.cosine_similarity_matrix(des_tokens, stu_tokens)
+        des_embed = self.embed.use(des_tokens)
+        stu_embed = self.embed.use(stu_tokens)
 
-        token_alignment = {}
+        cos_sim_matrix = self.utils.cosine_similarity_matrix(des_embed, stu_embed)
+
+        token_alignment: Dict = {}
 
         for i, column in enumerate(cos_sim_matrix):
             max_sim = max(column)
@@ -64,7 +69,10 @@ class WrongTermIdentification:
 
     def _rank_and_sim(self, des_tokens, stu_tokens):
 
-        cos_sim_matrix = self.utils.cosine_similarity_matrix(des_tokens, stu_tokens)
+        des_embed = self.embed.use(des_tokens)
+        stu_embed = self.embed.use(stu_tokens)
+
+        cos_sim_matrix = self.utils.cosine_similarity_matrix(des_embed, stu_embed)
         aligned_tokens: Dict = self.align_tokens(des_tokens, stu_tokens)
 
         rank_dict = {}
@@ -107,15 +115,15 @@ class WrongTermIdentification:
             for i in range(len(stu_answers_other)):
                 tokenized_answers.append(preprocess.tokenize(stu_answers_other[i]))
 
-        return Utilities().get_frequency(student_tokens, tokenized_answers)
+        return self.utils.get_frequency(student_tokens, tokenized_answers)
 
     def get_lex_score(self, id, stu_tokens):
 
         t_pw = self._get_lex_count(stu_tokens, id, True)
-        t_nw = self._get_lex_count(stu_tokens, id, False)
+        # t_nw = self._get_lex_count(stu_tokens, id, False)
 
         n_id = len(self.extract_data.get_student_answers(id))
-        n_total = len(self.extract_data.get_student_answers())
+        # n_total = len(self.extract_data.get_student_answers())
 
         score_lw = {}
         # TODO: Remove punctuations or alter considering negative examples
