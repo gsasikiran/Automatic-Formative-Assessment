@@ -2,11 +2,10 @@ from feature_base.wrong_term_identification import WrongTermIdentification
 from feature_base.terms_interchange import InterchangeOfTerms
 from formative_assessment.dataset_extractor import DataExtractor
 from formative_assessment.utilities.utils import Utilities
-
-
+import time
 
 class FeatureExtractor:
-    def __init__(self, question_id: float, stu_answer: str, dataset_path: str= "dataset/mohler/"):
+    def __init__(self, question_id: float, stu_answer: str, dataset_path: str = "dataset/mohler/"):
 
         self.question_id = question_id
         self.dataset_path = dataset_path
@@ -19,11 +18,11 @@ class FeatureExtractor:
 
         self.words_score = {}
 
-    def get_wrong_terms(self, sim_weight: float = 0.5, wrong_term_threshold: float = 0.2):
+    def get_wrong_terms(self, sem_weight: float = 0.5, wrong_term_threshold: float = 0.2):
         """
             Returns all the probable wrong terms of the student answer
-        :param sim_weight: float
-            Between 0 and 1. The weight we assign to the similarity feature. 1-sim_weight is assigned to the lexical feature.
+        :param sem_weight: float
+            Between 0 and 1. Semantic weight we assign to the similarity feature. 1-sim_weight is assigned to the lexical feature.
         :param wrong_term_threshold: float
             The threshold of which below that value, we consider the term as the wrong term
         :return: Dict
@@ -34,7 +33,7 @@ class FeatureExtractor:
         wti = WrongTermIdentification(self.dataset_path)
 
         # Preprocessing
-        pp_des_ans, pp_stu_ans = wti.preprocess(self.question_id, self.stu_ans)
+        pp_des_ans, pp_stu_ans = wti.preprocess(self.question_id, self.stu_ans, get_phrases=False)
         print("preprocessing complete")
 
         # Word alignment/Phrase alignment
@@ -48,14 +47,16 @@ class FeatureExtractor:
 
         print("Calculating lexical score")
 
-        # Get Lexical score
-        lex_score = wti.get_lex_score(self.question_id, pp_stu_ans)
-
         # Get lexical weightage
-        lex_weight = 1 - sim_weight
+        lex_weight = 1 - sem_weight
+
+        # Get Lexical score
+        start = time.time()
+        lex_score = wti.get_lex_score(self.question_id, pp_stu_ans)
+        print("Lex calc time: ", time.time() - start)
 
         for token in pp_stu_ans:
-            self.words_score[token] = (sim_weight * sim_score[token]) + (lex_weight * lex_score[token])
+            self.words_score[token] = (sem_weight * sim_score[token]) + (lex_weight * lex_score[token])
 
         print("Probable wrong terms in the answer")
         print({k: v for (k, v) in self.words_score.items() if v < wrong_term_threshold})
@@ -99,10 +100,3 @@ class FeatureExtractor:
 
         print(des_ans_rel)
         print(stu_ans_rel)
-
-
-
-
-
-
-

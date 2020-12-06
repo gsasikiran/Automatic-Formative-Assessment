@@ -20,6 +20,7 @@ from spacy.matcher import Matcher
 from flair.data import Sentence
 from flair.models import SequenceTagger
 from scipy.spatial.distance import cosine
+from formative_assessment.utilities.preprocessing import PreProcess
 
 __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
@@ -28,121 +29,17 @@ __version__ = ""
 __last_modified__ = "23.11.2020"
 __status__ = "Development"
 
-
-class PreProcess:
-    def __init__(self):
-        self.nlp = spacy.load("en_core_web_lg")
-
-    @staticmethod
-    def normalize_case(text: str):
-        """
-            Normalizes the text to the lower case
-        :param text: string
-        :return: string
-            Returns the string in the lower case
-        """
-        return text.lower()
-
-    def lemmatize(self, text: str):
-        """
-            Lemmatize the string of text to the list of SpaCy tokens
-        :param text: string
-            Input text
-        :return: List[str]
-            Returns the list of tokens of the input text
-        """
-
-        doc = self.nlp(text.lower())
-        lemmas = []
-
-        for token in doc:
-            lemmas.append(token.lemma_)
-
-        return lemmas
-
-
-    def tokenize(self, text: str):
-        """
-            Tokenize the string of text to the list of SpaCy tokens
-        :param text: string
-            Input text
-        :return: List[str]
-            Returns the list of tokens of the input text
-        """
-        doc = self.nlp(text.lower())
-        tokens = [token.text for token in doc if not token.is_punct]
-        return tokens
-
-    def remove_stopwords(self, tokens: List[str]):
-        """
-            Remove stopwords in the tokens of text
-        :param tokens: List[str]
-            List of string of tokens
-        :return: List[str]
-            Returns the list of tokens with removing stopwords
-
-        # Source:
-        # https://www.analyticsvidhya.com/blog/2019/08/how-to-remove-stopwords-text-normalization-nltk-spacy-gensim-python/
-        """
-        filtered_tokens = []
-
-        for token in tokens:
-            lexeme = self.nlp.vocab[token]
-            if not lexeme.is_stop:
-                filtered_tokens.append(token)
-        return filtered_tokens
-
-    def demote_ques(self, question: str, answer: str):
-        """
-            Removes the tokens of the answer repeated from the question
-        :param question: string
-        :param answer: string
-        :return: string
-            Returns string of answer with removing the words present in the question
-        """
-
-        question_tokens = self.tokenize(question)
-        answer_tokens = self.tokenize(answer)
-        answer_tokens = [token for token in answer_tokens if token not in question_tokens]
-
-        demoted_answer = ''
-
-        for i in range(len(answer_tokens)):
-            if i == len(answer_tokens) - 1:
-                demoted_answer += answer_tokens[i]
-                return demoted_answer
-            demoted_answer += answer_tokens[i] + ' '
-
-
 class Utilities:
     def __init__(self):
+        self.preprocess = PreProcess()
+
         self.nlp = spacy.load("en_core_web_lg")
         neuralcoref.add_to_pipe(self.nlp)
         tr = pytextrank.TextRank()
         self.nlp.add_pipe(tr.PipelineComponent, name='textrank', last=True)
+
         self.predictor = Predictor.from_path("weights/openie-model.2020.03.26.tar.gz")
-        self.preprocess = PreProcess()
 
-    @staticmethod
-    def get_use_embed(tokens):
-
-        module_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
-        embed = hub.load(module_url)
-        embeddings = embed(tokens)
-        word_array = []
-        for i in range(len(embeddings)):
-            word_array.append(embeddings[i].numpy())
-        return word_array
-
-    @staticmethod
-    def _get_bert_embed(tokens):
-
-        embedding = BertEmbedding().embedding(sentences=tokens)
-
-        word_array = []
-        for i in range(len(embedding)):
-            word_array.append(embedding[i][1][0])
-        return word_array
 
     @staticmethod
     def _get_embed_list(tokens):
@@ -159,25 +56,22 @@ class Utilities:
     def get_cosine_similarity(array_1, array_2):
         return cosine(array_1, array_2)
 
-    def cosine_similarity_matrix(self, tokens_a: List[str], tokens_b: List[str]):
+    def cosine_similarity_matrix(self, array_1, array_2):
         """
             Creates a matrix with similarity values from USE embeddings for each token in text_a to each word in text_b
-        :param tokens_a: List[str]
-             Tokens of text
-        :param tokens_b:
-            Tokens of text
+        :param array_1: List[np.array]
+
+        :param array_2: List[np.array]
+
         :return: np array
             Returns the matrix with similarity values
         """
 
-        tokens_a_array = self.get_use_embed(tokens_a)
-        tokens_b_array = self.get_use_embed(tokens_b)
+        matrix = np.zeros((len(array_2), len(array_1)))
 
-        matrix = np.zeros((len(tokens_b_array), len(tokens_a_array)))
-
-        for i in range(0, len(tokens_b_array)):
-            for j in range(0, len(tokens_a_array)):
-                matrix[i][j] = 1 - self.get_cosine_similarity(tokens_b_array[i], tokens_a_array[j])
+        for i in range(0, len(array_2)):
+            for j in range(0, len(array_1)):
+                matrix[i][j] = float(1 - self.get_cosine_similarity(array_2[i], array_1[j]))
         return matrix
 
     @staticmethod
