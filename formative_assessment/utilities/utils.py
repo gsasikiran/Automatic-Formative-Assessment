@@ -4,7 +4,7 @@ PreProcess class consists various functions such as tokenization, normalization 
 Utilities consists of the helper functions for processing various functions, that do not
 go into any other classes.
 """
-
+import re
 from typing import List
 
 import numpy as np
@@ -14,6 +14,7 @@ import pytextrank
 import string
 import pickle
 import tensorflow_hub as hub
+from allennlp.predictors import Predictor
 from bert_embedding import BertEmbedding
 from spacy.matcher import Matcher
 from flair.data import Sentence
@@ -41,6 +42,24 @@ class PreProcess:
             Returns the string in the lower case
         """
         return text.lower()
+
+    def lemmatize(self, text: str):
+        """
+            Lemmatize the string of text to the list of SpaCy tokens
+        :param text: string
+            Input text
+        :return: List[str]
+            Returns the list of tokens of the input text
+        """
+
+        doc = self.nlp(text.lower())
+        lemmas = []
+
+        for token in doc:
+            lemmas.append(token.lemma_)
+
+        return lemmas
+
 
     def tokenize(self, text: str):
         """
@@ -101,6 +120,8 @@ class Utilities:
         neuralcoref.add_to_pipe(self.nlp)
         tr = pytextrank.TextRank()
         self.nlp.add_pipe(tr.PipelineComponent, name='textrank', last=True)
+        self.predictor = Predictor.from_path("weights/openie-model.2020.03.26.tar.gz")
+        self.preprocess = PreProcess()
 
     @staticmethod
     def get_use_embed(tokens):
@@ -281,8 +302,28 @@ class Utilities:
 
         return phrases
 
+    @staticmethod
+    def tokens_to_str(tokens: List[str]):
+        """
+            Convert the list of tokens to the string with spaces in the order of list
+        :param tokens: List[str]
+        :return: str
+        """
+
+        token_str = ""
+        for token in tokens:
+            token_str += token + " "
+
+        return token_str[:-1]
+
     def is_passive_voice(self, sentence: str):
-        # Source: https://gist.github.com/armsp/30c2c1e19a0f1660944303cf079f831a
+        """
+            Checks if the given sentence has passive voice instances
+            # Source: https://gist.github.com/armsp/30c2c1e19a0f1660944303cf079f831a
+        :param sentence: str
+        :return:  True if the sentence has atleast one passive voice instance
+            else False
+        """
 
         matcher = Matcher(self.nlp.vocab)
         doc = self.nlp(sentence)
@@ -320,9 +361,32 @@ class Utilities:
         text2_updated = set()
 
         for text in text1_kp:
-            text1_updated.add(self.remove_articles(text))
+            filtered_text = self.remove_articles(text)
+            lemmas = self.preprocess.lemmatize(filtered_text)
+            filtered_text = self.tokens_to_str(lemmas)
+            text1_updated.add(filtered_text)
 
         for text in text2_kp:
-            text2_updated.add(self.remove_articles(text))
+            filtered_text = self.remove_articles(text)
+            lemmas = self.preprocess.lemmatize(filtered_text)
+            filtered_text = self.tokens_to_str(lemmas)
+            text2_updated.add(filtered_text)
 
         return text1_updated.intersection(text2_updated)
+
+    def open_ie(self, text: str):
+
+        doc = self.nlp(text)
+        sentences: List[str] = [sent.text for sent in doc.sents]
+
+        extracted_args = []
+
+        for sentence in sentences:
+            extracted_args.extend(self.predictor.predict(sentence=sentence)["verbs"])
+
+        relations = []
+        for relation in extracted_args:
+            desc = relation["description"]
+            relations.append(re.findall("\[(.*?)\]", desc))
+
+        return relations
