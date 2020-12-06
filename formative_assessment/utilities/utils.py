@@ -4,30 +4,30 @@ PreProcess class consists various functions such as tokenization, normalization 
 Utilities consists of the helper functions for processing various functions, that do not
 go into any other classes.
 """
+import pickle
 import re
+import string
 from typing import List
 
-import numpy as np
 import neuralcoref
-import spacy
+import numpy as np
 import pytextrank
-import string
-import pickle
-import tensorflow_hub as hub
+import spacy
 from allennlp.predictors import Predictor
-from bert_embedding import BertEmbedding
-from spacy.matcher import Matcher
 from flair.data import Sentence
 from flair.models import SequenceTagger
 from scipy.spatial.distance import cosine
+from spacy.matcher import Matcher
+
 from formative_assessment.utilities.preprocessing import PreProcess
 
 __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
 __license__ = ""
 __version__ = ""
-__last_modified__ = "23.11.2020"
+__last_modified__ = "06.12.2020"
 __status__ = "Development"
+
 
 class Utilities:
     def __init__(self):
@@ -39,7 +39,6 @@ class Utilities:
         self.nlp.add_pipe(tr.PipelineComponent, name='textrank', last=True)
 
         self.predictor = Predictor.from_path("weights/openie-model.2020.03.26.tar.gz")
-
 
     @staticmethod
     def _get_embed_list(tokens):
