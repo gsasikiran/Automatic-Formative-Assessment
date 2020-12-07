@@ -48,26 +48,36 @@ class WrongTermIdentification:
         question: str = self.dataset_dict[id]["question"]
         des_ans: str = self.dataset_dict[id]["des_answer"]
 
-
         # Question demoting
-        des_demoted: str = self.pre_process.demote_ques(question, des_ans)
-        stu_demoted: str = self.pre_process.demote_ques(question, student_answer)
+        # des_demoted: str = self.pre_process.demote_ques(question, des_ans)
+        # stu_demoted: str = self.pre_process.demote_ques(question, student_answer)
 
         # Remove articles
-        des_demoted = self.utils.remove_articles(des_demoted)
-        stu_demoted = self.utils.remove_articles(stu_demoted)
+        des_demoted = self.utils.remove_articles(des_ans)
+        stu_demoted = self.utils.remove_articles(student_answer)
+
+        # Splitting answers by
+        des_sents = self.utils.split_by_punct(des_demoted)
+        stu_sents = self.utils.split_by_punct(stu_demoted)
+
+        des_chunks: List[str] = []
+        stu_chunks: List[str] = []
 
         # Phrase extraction
         if get_phrases:
+            for sent in des_sents:
+                des_chunks.extend(self.utils.extract_phrases(sent))
 
-            des_chunks: List[str] = self.utils.extract_phrases(des_demoted)
-            stu_chunks: List[str] = self.utils.extract_phrases(stu_demoted)
+            for sent in stu_sents:
+                stu_chunks.extend(self.utils.extract_phrases(sent))
 
         # Tokenization
         else:
+            for sent in des_sents:
+                des_chunks.extend(self.utils.extract_phrases(sent))
 
-            des_chunks: List[str] = self.pre_process.tokenize(des_demoted)
-            stu_chunks: List[str] = self.pre_process.tokenize(stu_demoted)
+            for sent in stu_sents:
+                stu_chunks.extend(self.utils.extract_phrases(sent))
 
         # Stopword removal
         des_filtered = self.pre_process.remove_stopwords(des_chunks)

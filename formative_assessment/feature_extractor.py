@@ -28,6 +28,9 @@ class FeatureExtractor:
 
         self.words_score = {}
 
+        self.utils = Utilities()
+        self.wti = WrongTermIdentification(self.dataset_dict, DIR_PATH=self.dataset_path)
+
     def get_wrong_terms(self, sem_weight: float = 0.5, wrong_term_threshold: float = 0.4):
         """
             Returns all the probable wrong terms of the student answer
@@ -44,27 +47,27 @@ class FeatureExtractor:
         """
 
         print("Extracting wrong terms...")
-        wti = WrongTermIdentification(self.dataset_dict, DIR_PATH=self.dataset_path)
 
         # Preprocessing
-        pp_des_ans, pp_stu_ans = wti.preprocess(self.question_id, self.stu_ans)
+        pp_des_ans, pp_stu_ans = self.wti.preprocess(self.question_id, self.stu_ans)
         print("preprocessing complete")
 
+        print(pp_des_ans, pp_stu_ans)
         # Word alignment/Phrase alignment
-        aligned_words = wti.align_tokens(pp_des_ans, pp_stu_ans)
+        aligned_words = self.wti.align_tokens(pp_des_ans, pp_stu_ans)
         print("Word alignment: ", aligned_words)
 
         print("Calculating similarity score")
 
         # Get Similarity score
-        sim_score = wti.get_sim_score(pp_des_ans, pp_stu_ans)
+        sim_score = self.wti.get_sim_score(pp_des_ans, pp_stu_ans)
 
         print("Calculating lexical score")
         # Get lexical weightage
         lex_weight = 1 - sem_weight
 
         # Get Lexical score
-        lex_score = wti.get_lex_score(self.question_id, pp_stu_ans)
+        lex_score = self.wti.get_lex_score(self.question_id, pp_stu_ans)
 
         for token in pp_stu_ans:
             self.words_score[token] = (sem_weight * sim_score[token]) + (lex_weight * lex_score[token])
@@ -91,7 +94,7 @@ class FeatureExtractor:
             total += chunks_score[phrase]
 
         answer_score = total / len(chunks_score)  # Average of the answer score
-        print(answer_score)
+        print("Answer score: ", answer_score)
         # If the calculated total score is less than given threshold, then we consider that as the wrong_answer
         if answer_score < wrong_answer_threshold:
             print("Wrong answer")
@@ -99,6 +102,38 @@ class FeatureExtractor:
             print("Not a wrong answer")
 
         return answer_score < wrong_answer_threshold
+
+    def get_suboptimal_answers(self):
+
+        des_sents = self.utils.split_by_punct(self.des_ans)
+        stu_sents = self.utils.split_by_punct(self.stu_ans)
+
+        des_phrases = []
+        stu_phrases = []
+
+        for sent in des_sents:
+            des_phrases.extend(self.utils.extract_phrases_tr(sent))
+
+        for sent in stu_sents:
+            stu_phrases.extend(self.utils.extract_phrases_tr(sent))
+
+        print(des_phrases, stu_phrases)
+        # Word alignment/Phrase alignment
+        aligned_words = self.wti.align_tokens(des_phrases,stu_phrases)
+
+        written_phrases = []
+
+        for value in aligned_words.values():
+            written_phrases.append(value[0])
+
+        print(written_phrases)
+        missed_phrases = [phrase for phrase in des_phrases if phrase not in written_phrases]
+
+        if missed_phrases:
+            print("The student didn't mention about: ")
+            print(missed_phrases)
+        else:
+            print("You have written about all the topics")
 
     def get_interchanged_terms(self):
         """
