@@ -82,6 +82,25 @@ class DataExtractor:
 
         return self.stu_ans_df.answer.to_list()
 
+    def get_scores(self, stu_ans_id: float = None):
+        """
+        The column name of the student answer should be named as the answer in answers file
+
+        :param stu_ans_id: float
+            The id of the the student answers to get
+            default: None
+
+        :return: List[int]
+            Returns the list of all student scores,
+            Else if the stu_ans_id is given, returns the list of student scores for that id
+        """
+
+        if stu_ans_id is not None:
+            stu_ans_list = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score_avg"])
+            return stu_ans_list
+
+        return self.stu_ans_df.score_avg.to_list()
+
     def from_pickle(self, file_rel_path: str = ""):
         """
          Reads the dictionary dataset from pickle file
@@ -116,11 +135,10 @@ class DataExtractor:
         sent_list.extend(self.get_desired_answers())
         sent_list.extend(self.get_student_answers())
 
-        print(len(sent_list))
         phrases = set()
 
         for sentence in sent_list:
-            phrases.union(set(self.utils.extract_phrases(sentence)))
+            phrases.update(self.utils.extract_phrases(sentence))
 
         return phrases
 

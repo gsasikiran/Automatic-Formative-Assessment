@@ -40,6 +40,8 @@ class Utilities:
 
         self.predictor = Predictor.from_path("weights/openie-model.2020.03.26.tar.gz")
 
+        self.chunk_tagger = SequenceTagger.load('chunk')
+
     @staticmethod
     def _get_embed_list(tokens):
         with open("dataset/embeddings/phrases_use_stu_answers.pickle", "rb") as handle:
@@ -116,8 +118,7 @@ class Utilities:
         """
 
         sentence = Sentence(text)
-        tagger = SequenceTagger.load('chunk')
-        tagger.predict(sentence)
+        self.chunk_tagger.predict(sentence)
 
         token_list: List[str] = []
         token_tags: List[str] = []
@@ -283,3 +284,12 @@ class Utilities:
             relations.append(re.findall("\[(.*?)\]", desc))
 
         return relations
+
+    def split_by_punct(self, text: str):
+        """
+
+        :param text:
+        :return:
+        """
+
+        return re.split("[?.,:;]", text)
