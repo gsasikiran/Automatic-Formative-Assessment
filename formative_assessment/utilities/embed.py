@@ -6,16 +6,16 @@ from bert_embedding import BertEmbedding
 
 class Embedding:
     def __init__(self):
-        self.use_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
-        self.elmo_url = "https://tfhub.dev/google/elmo/3"
+        self._use_url = "https://tfhub.dev/google/universal-sentence-encoder/4"
+        self._elmo_url = "https://tfhub.dev/google/elmo/3"
 
-        self.use_embed = hub.load(self.use_url)
-        self.elmo_embed = hub.load(self.elmo_url)
+        self._use_embed = hub.load(self._use_url)
+        self._elmo_embed = hub.load(self._elmo_url)
 
-        self.bert_embed = BertEmbedding()
+        self._bert_embed = BertEmbedding()
 
     def bert(self, tokens: List[str]):
-        embedding = self.bert_embed.embedding(sentences=tokens)
+        embedding = self._bert_embed.embedding(sentences=tokens)
 
         embed_array = []
         for i in range(len(embedding)):
@@ -24,7 +24,7 @@ class Embedding:
         return embed_array
 
     def elmo(self, tokens: List[str]):
-        embeddings = self.elmo_embed(tokens)
+        embeddings = self._elmo_embed(tokens)
 
         embed_array = []
         for i in range(len(embeddings)):
@@ -34,7 +34,7 @@ class Embedding:
 
     def use(self, tokens: List[str]):
 
-        embeddings = self.use_embed(tokens)
+        embeddings = self._use_embed(tokens)
 
         embed_array = []
         for i in range(len(embeddings)):

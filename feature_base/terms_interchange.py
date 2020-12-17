@@ -1,12 +1,14 @@
 import re
+import numpy as np
 
 from formative_assessment.utilities.utils import Utilities, PreProcess
-
+from formative_assessment.utilities.embed import Embedding
 
 class InterchangeOfTerms:
     def __init__(self):
         self.utils = Utilities()
         self.preprocess = PreProcess()
+        self.embed = Embedding()
 
     def get_question_terms(self, question: str):
         """
@@ -54,6 +56,9 @@ class InterchangeOfTerms:
 
     def generate_tree(self, heads: str, answer: str):
 
+        # TODO: check the relation extraction for the sentences with verbs with "be" form.
+        #  For example, "Constructor is a first method in a class."
+
         relations = self.utils.open_ie(answer)
 
         tree = {}
@@ -90,3 +95,46 @@ class InterchangeOfTerms:
                     for arg in args:
                         tree[topic].append((verb, arg))
         return tree
+
+    @staticmethod
+    def _create_sent_tree(tree):
+
+        sents = {}
+        for topic in tree:
+            sents[topic] = []
+            for att in tree[topic]:
+                sent = att[0] + " " + att[1]
+                sents[topic].append(sent)
+
+        return sents
+
+    def is_interchanged(self, des_tree, stu_tree):
+
+        des_sents = self._create_sent_tree(des_tree)
+        stu_sents = self._create_sent_tree(stu_tree)
+
+        print(des_tree, stu_tree)
+
+        des_values = list(des_sents.values())
+        des_values = [item for sublist in des_values for item in sublist]
+
+        if des_values:
+            des_embeds = self.embed.use(des_values)
+
+            for topic in stu_sents:
+
+                for sent in stu_sents[topic]:
+                    sent_embed = self.embed.use([sent])[0]
+                    sim_scores = []
+
+                    for embed in des_embeds:
+                        sim_scores.append(self.utils.get_cosine_similarity(sent_embed, embed))
+
+                    index = int(np.argmax(np.asarray(sim_scores)))
+
+                    if des_values[index] in des_sents[topic]:
+                        continue
+                    else:
+                        for des_topic in des_sents:
+                            if des_values[index] in des_sents[des_topic]:
+                                print("You have interchanged the terms/phrase of topic \"" + des_topic + "\" to the topic \"" + topic, "\" for the sentence \"" + sent + "\"")

@@ -48,10 +48,6 @@ class WrongTermIdentification:
         question: str = self.dataset_dict[id]["question"]
         des_ans: str = self.dataset_dict[id]["des_answer"]
 
-        # Question demoting
-        # des_demoted: str = self.pre_process.demote_ques(question, des_ans)
-        # stu_demoted: str = self.pre_process.demote_ques(question, student_answer)
-
         # Remove articles
         des_demoted = self.utils.remove_articles(des_ans)
         stu_demoted = self.utils.remove_articles(student_answer)
@@ -66,18 +62,32 @@ class WrongTermIdentification:
         # Phrase extraction
         if get_phrases:
             for sent in des_sents:
-                des_chunks.extend(self.utils.extract_phrases(sent))
+                # Question demoting
+                des_demoted: str = self.pre_process.demote_ques(question, sent)
+                if des_demoted == "":
+                    continue
+                des_chunks.extend(self.utils.extract_phrases(des_demoted))
 
             for sent in stu_sents:
-                stu_chunks.extend(self.utils.extract_phrases(sent))
+                stu_demoted: str = self.pre_process.demote_ques(question, sent)
+                if des_demoted == "":
+                    continue
+                stu_chunks.extend(self.utils.extract_phrases(stu_demoted))
 
         # Tokenization
         else:
             for sent in des_sents:
-                des_chunks.extend(self.utils.extract_phrases(sent))
+                # Question demoting
+                des_demoted: str = self.pre_process.demote_ques(question, sent)
+                if des_demoted == "":
+                    continue
+                des_chunks.extend(self.utils.extract_phrases(des_demoted))
 
             for sent in stu_sents:
-                stu_chunks.extend(self.utils.extract_phrases(sent))
+                stu_demoted: str = self.pre_process.demote_ques(question, sent)
+                if des_demoted == "":
+                    continue
+                stu_chunks.extend(self.utils.extract_phrases(stu_demoted))
 
         # Stopword removal
         des_filtered = self.pre_process.remove_stopwords(des_chunks)

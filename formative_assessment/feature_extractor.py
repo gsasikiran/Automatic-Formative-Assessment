@@ -55,14 +55,14 @@ class FeatureExtractor:
         print(pp_des_ans, pp_stu_ans)
         # Word alignment/Phrase alignment
         aligned_words = self.wti.align_tokens(pp_des_ans, pp_stu_ans)
-        print("Word alignment: ", aligned_words)
+        # print("Word alignment: ", aligned_words)
 
         print("Calculating similarity score")
 
         # Get Similarity score
         sim_score = self.wti.get_sim_score(pp_des_ans, pp_stu_ans)
 
-        print("Calculating lexical score")
+        # print("Calculating lexical score")
         # Get lexical weightage
         lex_weight = 1 - sem_weight
 
@@ -112,22 +112,34 @@ class FeatureExtractor:
         stu_phrases = []
 
         for sent in des_sents:
-            des_phrases.extend(self.utils.extract_phrases_tr(sent))
+            des_demoted: str = self.wti.pre_process.demote_ques(self.question, sent)
+            if des_phrases:
+                des_phrases.extend(self.utils.extract_phrases_tr(des_demoted))
 
         for sent in stu_sents:
-            stu_phrases.extend(self.utils.extract_phrases_tr(sent))
+            stu_demoted: str = self.wti.pre_process.demote_ques(self.question, sent)
 
-        print(des_phrases, stu_phrases)
+            if stu_demoted:
+                stu_phrases.extend(self.utils.extract_phrases_tr(stu_demoted))
+
         # Word alignment/Phrase alignment
-        aligned_words = self.wti.align_tokens(des_phrases,stu_phrases)
+        aligned_words = []
+        missed_phrases = []
 
-        written_phrases = []
+        if des_phrases:
+            if stu_phrases:
 
-        for value in aligned_words.values():
-            written_phrases.append(value[0])
+                aligned_words = self.wti.align_tokens(des_phrases, stu_phrases)
 
-        print(written_phrases)
-        missed_phrases = [phrase for phrase in des_phrases if phrase not in written_phrases]
+                written_phrases = []
+
+                for value in aligned_words.values():
+                    written_phrases.append(value[0])
+
+                missed_phrases = [phrase for phrase in des_phrases if phrase not in written_phrases]
+
+            else:
+                missed_phrases = des_phrases
 
         if missed_phrases:
             print("The student didn't mention about: ")
@@ -142,12 +154,10 @@ class FeatureExtractor:
         :return:
         """
         iot = InterchangeOfTerms()
-        utils = Utilities()
 
         heads = iot.get_topics(self.question, self.des_ans)
         # TODO: if the heads are null, then we assign the best keyphrase as the head and corresponding verbs as the tree
         des_ans_rel = iot.generate_tree(heads, self.des_ans)
         stu_ans_rel = iot.generate_tree(heads, self.stu_ans)
 
-        print(des_ans_rel)
-        print(stu_ans_rel)
+        iot.is_interchanged(des_ans_rel, stu_ans_rel)
