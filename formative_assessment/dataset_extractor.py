@@ -167,6 +167,7 @@ class ConvertDataType(DataExtractor):
             data[id]["question"] = self.get_questions(id)
             data[id]["des_answer"] = self.get_desired_answers(id)
             data[id]["stu_answers"] = self.get_student_answers(id)
+            data[id]["scores"] = self.get_scores(id)
 
         return data
 

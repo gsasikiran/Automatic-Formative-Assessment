@@ -28,14 +28,13 @@ __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
 __license__ = ""
 __version__ = ""
-__last_modified__ = "14.12.2020"
+__last_modified__ = "06.01.2020"
 __status__ = "Development"
 
 
-class Utilities:
+class Utilities(PreProcess):
     def __init__(self):
-        self.preprocess = PreProcess()
-
+        super().__init__()
         self.nlp = spacy.load("en_core_web_lg")
         neuralcoref.add_to_pipe(self.nlp)
         tr = pytextrank.TextRank()
@@ -58,7 +57,7 @@ class Utilities:
 
     @staticmethod
     def get_cosine_similarity(array_1, array_2):
-        return 1 - cosine(array_1, array_2)
+        return 1-cosine(array_1, array_2)
 
     def cosine_similarity_matrix(self, array_1, array_2):
         """
@@ -71,11 +70,11 @@ class Utilities:
             Returns the matrix with similarity values
         """
 
-        matrix = np.zeros((len(array_2), len(array_1)))
+        matrix = np.zeros((len(array_1), len(array_2)))
 
-        for i in range(0, len(array_2)):
-            for j in range(0, len(array_1)):
-                matrix[i][j] = float(1 - self.get_cosine_similarity(array_2[i], array_1[j]))
+        for i in range(0, len(array_1)):
+            for j in range(0, len(array_2)):
+                matrix[i][j] = float(self.get_cosine_similarity(array_1[i], array_2[j]))
         return matrix
 
     @staticmethod
@@ -241,13 +240,15 @@ class Utilities:
         updated = ""
 
         for token in doc:
-            if token.text not in articles:
-                updated += token.text + " "
+            if token.text in string.punctuation:
+                updated += token.text
+                continue
 
-        updated_len = len(updated)
+            if token.text.lower() not in articles:
+                updated += " " + token.text
 
         # Return by removing the last space
-        return updated[:updated_len - 1]
+        return updated[1:]
 
     def get_common_keyphrases(self, text1, text2):
 
@@ -259,13 +260,13 @@ class Utilities:
 
         for text in text1_kp:
             filtered_text = self.remove_articles(text)
-            lemmas = self.preprocess.lemmatize(filtered_text)
+            lemmas = self.lemmatize(filtered_text)
             filtered_text = self.tokens_to_str(lemmas)
             text1_updated.add(filtered_text)
 
         for text in text2_kp:
             filtered_text = self.remove_articles(text)
-            lemmas = self.preprocess.lemmatize(filtered_text)
+            lemmas = self.lemmatize(filtered_text)
             filtered_text = self.tokens_to_str(lemmas)
             text2_updated.add(filtered_text)
 
@@ -290,12 +291,14 @@ class Utilities:
 
     def split_by_punct(self, text: str):
         """
-
-        :param text:
-        :return:
+            Split the sentence by punctuations
+        :param text: str
+            Sentence that has to be split
+        :return: List[str]
+            Split sentences with punctuations
         """
 
-        return re.split("[?.,:;]", text)
+        return re.split("[?.,:;]/* ", text)
 
     @staticmethod
     def wordnet_syn(word_1: str):

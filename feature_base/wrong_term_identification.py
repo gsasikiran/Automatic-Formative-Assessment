@@ -15,7 +15,7 @@ __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
 __license__ = ""
 __version__ = ""
-__last_modified__ = "06.12.2020"
+__last_modified__ = "06.01.2020"
 __status__ = "Development"
 
 
@@ -25,7 +25,7 @@ class WrongTermIdentification:
         self.PATH = DIR_PATH
         self.extract_data = DataExtractor(DIR_PATH)
         self.dataset_dict = dataset
-        self.pre_process = PreProcess()
+        # self.pre_process = PreProcess()
         self.utils = Utilities()
         self.embed = Embedding()
 
@@ -63,13 +63,13 @@ class WrongTermIdentification:
         if get_phrases:
             for sent in des_sents:
                 # Question demoting
-                des_demoted: str = self.pre_process.demote_ques(question, sent)
+                des_demoted: str = self.utils.demote_ques(question, sent)
                 if des_demoted == "":
                     continue
                 des_chunks.extend(self.utils.extract_phrases(des_demoted))
 
             for sent in stu_sents:
-                stu_demoted: str = self.pre_process.demote_ques(question, sent)
+                stu_demoted: str = self.utils.demote_ques(question, sent)
                 if des_demoted == "":
                     continue
                 stu_chunks.extend(self.utils.extract_phrases(stu_demoted))
@@ -77,21 +77,22 @@ class WrongTermIdentification:
         # Tokenization
         else:
             for sent in des_sents:
+
                 # Question demoting
-                des_demoted: str = self.pre_process.demote_ques(question, sent)
+                des_demoted: str = self.utils.demote_ques(question, sent)
                 if des_demoted == "":
                     continue
                 des_chunks.extend(self.utils.extract_phrases(des_demoted))
 
             for sent in stu_sents:
-                stu_demoted: str = self.pre_process.demote_ques(question, sent)
-                if des_demoted == "":
+                stu_demoted: str = self.utils.demote_ques(question, sent)
+                if stu_demoted == "":
                     continue
                 stu_chunks.extend(self.utils.extract_phrases(stu_demoted))
 
         # Stopword removal
-        des_filtered = self.pre_process.remove_stopwords(des_chunks)
-        stu_filtered = self.pre_process.remove_stopwords(stu_chunks)
+        des_filtered = self.utils.remove_stopwords(des_chunks)
+        stu_filtered = self.utils.remove_stopwords(stu_chunks)
 
         return des_filtered, stu_filtered
 
@@ -114,10 +115,12 @@ class WrongTermIdentification:
         stu_embed = self.embed.use(stu_tokens)
 
         # Cosine similar matrix: Heat map of similarity
-        cos_sim_matrix = self.utils.cosine_similarity_matrix(des_embed, stu_embed)
+        cos_sim_matrix = self.utils.cosine_similarity_matrix(stu_embed, des_embed)
 
         token_alignment: Dict = {}
         for i, column in enumerate(cos_sim_matrix):
+            #TODO: put threshold for max_similiarity
+            #if max_sim> threshold, then add to token alignment
             max_sim = max(column)
             index = np.argmax(column) # generate the index of the maximum similarity
             token_alignment[stu_tokens[i]] = (des_tokens[int(index)], max_sim)
@@ -142,23 +145,31 @@ class WrongTermIdentification:
         des_embed = self.embed.use(des_tokens)
         stu_embed = self.embed.use(stu_tokens)
 
-        cos_sim_matrix = self.utils.cosine_similarity_matrix(des_embed, stu_embed)
+        cos_sim_matrix = self.utils.cosine_similarity_matrix(stu_embed, des_embed)
+
         aligned_tokens: Dict = self.align_tokens(des_tokens, stu_tokens)
 
         rank_dict = {}
         sim_dict = {}
 
         for key in aligned_tokens:
-            index = stu_tokens.index(key)
-            similarity = aligned_tokens[key][1]
 
-            sorted_row = sorted(cos_sim_matrix[index])[::-1]
+            stu_token_idx = stu_tokens.index(key)
+            max_sim = aligned_tokens[key][1] #max_similarity
+            print(cos_sim_matrix[stu_token_idx])
+            print(type(cos_sim_matrix[stu_token_idx]))
+            print(len(cos_sim_matrix[stu_token_idx]))
+            print(max_sim)
+            print(np.where(cos_sim_matrix[stu_token_idx] == max_sim)[0])
+            des_token_idx = int(np.where(np.array(cos_sim_matrix[stu_token_idx]) == max_sim)[0])
 
-            rank = (int(np.where(sorted_row == similarity)[0]) + 1) if len(
-                np.where(sorted_row == similarity)[0]) == 1 else (int(np.where(sorted_row == similarity)[0][0]) + 1)
+            sorted_row = sorted(cos_sim_matrix.T[des_token_idx])[::-1]
+
+            rank = (int(np.where(sorted_row == max_sim)[0]) + 1) if len(
+                np.where(sorted_row == max_sim)[0]) == 1 else (int(np.where(sorted_row == max_sim)[0][0]) + 1)
 
             rank_dict[key] = rank
-            sim_dict[key] = similarity
+            sim_dict[key] = max_sim
 
         return rank_dict, sim_dict
 

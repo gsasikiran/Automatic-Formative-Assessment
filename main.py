@@ -21,11 +21,12 @@ __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
 __license__ = ""
 __version__ = ""
-__last_modified__ = "09.12.2020"
+__last_modified__ = "06.01.2020"
 __status__ = "Development"
 
 if __name__ == '__main__':
     PATH = "dataset/mohler/"
+
     # Convert the data into  dictionary with ids, their corresponding questions, desired answers and student answers
     convert_data = ConvertDataType(PATH)
     dataset_dict = convert_data.to_dict()
@@ -43,10 +44,13 @@ if __name__ == '__main__':
         print("Desired answer: ", desired_answer)
         # temporary student answer
         student_answers = dataset_dict[s_no]["stu_answers"]
+        scores = dataset_dict[s_no]["scores"]
 
-        for student_answer in student_answers:
+        for i, _ in enumerate(student_answers):
             start = time.time()
+            student_answer = student_answers[i]
             print("Student answer: ", student_answer)
+            print("Assigned score: ", scores[i])
             warnings.filterwarnings("ignore")
             extract_features = FeatureExtractor(s_no, student_answer, dataset_dict, PATH)
             extract_features.get_wrong_terms()

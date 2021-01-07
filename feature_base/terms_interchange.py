@@ -1,13 +1,13 @@
 import re
 import numpy as np
 
-from formative_assessment.utilities.utils import Utilities, PreProcess
+from formative_assessment.utilities.utils import Utilities
 from formative_assessment.utilities.embed import Embedding
+
 
 class InterchangeOfTerms:
     def __init__(self):
         self.utils = Utilities()
-        self.preprocess = PreProcess()
         self.embed = Embedding()
 
     def get_question_terms(self, question: str):
@@ -56,6 +56,7 @@ class InterchangeOfTerms:
 
     def generate_tree(self, heads: str, answer: str):
 
+
         # TODO: check the relation extraction for the sentences with verbs with "be" form.
         #  For example, "Constructor is a first method in a class."
 
@@ -73,27 +74,30 @@ class InterchangeOfTerms:
                 verb = ""
                 head = ""
 
+                sent = ""
+
                 for str in relation:
                     if re.match("V: ", str):
                         verb = re.sub("V: ", '', str)
-                        lemmas = self.preprocess.lemmatize(verb)
+                        lemmas = self.utils.lemmatize(verb)
                         verb = self.utils.tokens_to_str(lemmas)
+                        sent = sent + " " + verb
                         continue
 
-                    elif re.match("ARG(\d|M(-TMP|-LOC))", str):
-                        text = re.sub("ARG(\d|M(-TMP|-LOC)): ", '', str)
-                        lemmas = self.preprocess.lemmatize(text)
+                    elif re.match("ARG(\d|M(-TMP|-LOC|-NEG))", str):
+                        text = re.sub("ARG(\d|M(-TMP|-LOC|-NEG)): ", '', str)
+                        lemmas = self.utils.lemmatize(text)
                         arg = self.utils.tokens_to_str(lemmas)
                         if topic in arg:
                             head = topic
                             continue
                         else:
                             args.append(arg)
+                            sent = sent + " " + arg
                         continue
 
                 if topic == head:
-                    for arg in args:
-                        tree[topic].append((verb, arg))
+                    tree[topic].append(sent[1:])
         return tree
 
     @staticmethod
@@ -110,10 +114,8 @@ class InterchangeOfTerms:
 
     def is_interchanged(self, des_tree, stu_tree):
 
-        des_sents = self._create_sent_tree(des_tree)
-        stu_sents = self._create_sent_tree(stu_tree)
-
-        print(des_tree, stu_tree)
+        des_sents = des_tree#self._create_sent_tree(des_tree)
+        stu_sents = stu_tree#self._create_sent_tree(stu_tree)
 
         des_values = list(des_sents.values())
         des_values = [item for sublist in des_values for item in sublist]
@@ -122,7 +124,7 @@ class InterchangeOfTerms:
             des_embeds = self.embed.use(des_values)
 
             for topic in stu_sents:
-
+                #TODO: can create a similarity matrix instead of two for loops
                 for sent in stu_sents[topic]:
                     sent_embed = self.embed.use([sent])[0]
                     sim_scores = []
@@ -132,9 +134,13 @@ class InterchangeOfTerms:
 
                     index = int(np.argmax(np.asarray(sim_scores)))
 
+                    print("Interchange of phrases: ")
                     if des_values[index] in des_sents[topic]:
+                        # print("The sentence \"" + sent + "\" is correctly written for topic \"" + topic + "\"")
                         continue
                     else:
                         for des_topic in des_sents:
                             if des_values[index] in des_sents[des_topic]:
-                                print("You have interchanged the terms/phrase of topic \"" + des_topic + "\" to the topic \"" + topic, "\" for the sentence \"" + sent + "\"")
+                                print(
+                                    "You have interchanged the terms/phrase of topic \"" + des_topic + "\" to the topic \"" + topic,
+                                    "\" for the sentence \"" + sent + "\"")

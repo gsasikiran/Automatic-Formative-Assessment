@@ -10,7 +10,7 @@ __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
 __license__ = ""
 __version__ = ""
-__last_modified__ = "06.12.2020"
+__last_modified__ = "06.01.2020"
 __status__ = "Development"
 
 
@@ -36,8 +36,8 @@ class FeatureExtractor:
             Returns all the probable wrong terms of the student answer
 
         :param sem_weight: float
-            Between 0 and 1. Semantic weight we assign to the similarity feature. 1-sim_weight is assigned to the lexical feature.
-            default: 0.5
+            Between 0 and 1. Semantic weight we assign to the similarity feature. 1-sim_weight is assigned to the
+            lexical feature. default: 0.5
         :param wrong_term_threshold: float
             The threshold of which below that value, we consider the term as the wrong term
             default: 0.4
@@ -52,17 +52,15 @@ class FeatureExtractor:
         pp_des_ans, pp_stu_ans = self.wti.preprocess(self.question_id, self.stu_ans)
         print("preprocessing complete")
 
-        print(pp_des_ans, pp_stu_ans)
         # Word alignment/Phrase alignment
-        aligned_words = self.wti.align_tokens(pp_des_ans, pp_stu_ans)
+        # aligned_words = self.wti.align_tokens(pp_des_ans, pp_stu_ans)
         # print("Word alignment: ", aligned_words)
 
         print("Calculating similarity score")
-
         # Get Similarity score
         sim_score = self.wti.get_sim_score(pp_des_ans, pp_stu_ans)
 
-        # print("Calculating lexical score")
+        print("Calculating lexical score")
         # Get lexical weightage
         lex_weight = 1 - sem_weight
 
@@ -75,7 +73,7 @@ class FeatureExtractor:
         print("Probable wrong terms in the answer")
         print({k: v for (k, v) in self.words_score.items() if v < wrong_term_threshold})
 
-    def is_wrong_answer(self, wrong_answer_threshold: float = 0.35):
+    def is_wrong_answer(self, wrong_answer_threshold: float = 0.25, expected_similarity: float = 0.8):
         """
             Returns if the answer is wrong or not.
 
@@ -84,6 +82,7 @@ class FeatureExtractor:
             default: 0.3
 
         :return: bool
+            Returns true if the answer is totally or sub-optimally correct, else return false
         """
 
         chunks_score = self.words_score
@@ -93,53 +92,56 @@ class FeatureExtractor:
         for phrase in chunks_score:
             total += chunks_score[phrase]
 
-        answer_score = total / len(chunks_score)  # Average of the answer score
+        answer_score = total / (expected_similarity * len(chunks_score))  # Average of the answer score
         print("Answer score: ", answer_score)
         # If the calculated total score is less than given threshold, then we consider that as the wrong_answer
+
         if answer_score < wrong_answer_threshold:
             print("Wrong answer")
         else:
             print("Not a wrong answer")
 
-        return answer_score < wrong_answer_threshold
+        return answer_score > wrong_answer_threshold
 
     def get_suboptimal_answers(self):
 
         des_sents = self.utils.split_by_punct(self.des_ans)
         stu_sents = self.utils.split_by_punct(self.stu_ans)
 
-        des_phrases = []
-        stu_phrases = []
+        des_phrases = set()
+        stu_phrases = set()
 
         for sent in des_sents:
-            des_demoted: str = self.wti.pre_process.demote_ques(self.question, sent)
-            if des_phrases:
-                des_phrases.extend(self.utils.extract_phrases_tr(des_demoted))
+
+            des_demoted: str = self.utils.demote_ques(self.question, sent)
+            if des_demoted:
+                des_phrases.update(self.utils.extract_phrases_tr(des_demoted))
 
         for sent in stu_sents:
-            stu_demoted: str = self.wti.pre_process.demote_ques(self.question, sent)
+            stu_demoted: str = self.utils.demote_ques(self.question, sent)
 
             if stu_demoted:
-                stu_phrases.extend(self.utils.extract_phrases_tr(stu_demoted))
+                stu_phrases.update(self.utils.extract_phrases_tr(stu_demoted))
 
         # Word alignment/Phrase alignment
-        aligned_words = []
-        missed_phrases = []
+        missed_phrases = set()
 
         if des_phrases:
             if stu_phrases:
+                #TODO: get if aligned is not greater than some similarity (say 0.5), assign not aligned.
+                aligned_words = self.wti.align_tokens(list(des_phrases), list(stu_phrases))
 
-                aligned_words = self.wti.align_tokens(des_phrases, stu_phrases)
-
-                written_phrases = []
+                written_phrases = set()
 
                 for value in aligned_words.values():
-                    written_phrases.append(value[0])
+                    written_phrases.add(value[0])
 
-                missed_phrases = [phrase for phrase in des_phrases if phrase not in written_phrases]
+                missed_phrases = written_phrases - des_phrases
 
             else:
                 missed_phrases = des_phrases
+
+        print("Unanswered topics")
 
         if missed_phrases:
             print("The student didn't mention about: ")
@@ -156,8 +158,10 @@ class FeatureExtractor:
         iot = InterchangeOfTerms()
 
         heads = iot.get_topics(self.question, self.des_ans)
-        # TODO: if the heads are null, then we assign the best keyphrase as the head and corresponding verbs as the tree
+        # TODO: if the heads are null, then we assign the best key-phrase as the head and corresponding verbs as the
+        #  tree
         des_ans_rel = iot.generate_tree(heads, self.des_ans)
-        stu_ans_rel = iot.generate_tree(heads, self.stu_ans)
+        stu_ans = self.utils.corefer_resolution(self.stu_ans)
+        stu_ans_rel = iot.generate_tree(heads, stu_ans)
 
         iot.is_interchanged(des_ans_rel, stu_ans_rel)
