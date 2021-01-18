@@ -15,7 +15,7 @@ __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
 __license__ = ""
 __version__ = ""
-__last_modified__ = "06.01.2020"
+__last_modified__ = "18.01.2020"
 __status__ = "Development"
 
 
@@ -71,7 +71,7 @@ class WrongTermIdentification:
 
             for sent in stu_sents:
                 stu_demoted: str = self.utils.demote_ques(question, sent)
-                if des_demoted == "":
+                if stu_demoted == "":
                     continue
                 stu_chunks.extend(self.utils.extract_phrases(stu_demoted))
 
@@ -120,8 +120,7 @@ class WrongTermIdentification:
 
         token_alignment: Dict = {}
         for i, column in enumerate(self.cos_sim_matrix):
-            #TODO: put threshold for max_similiarity
-            #if max_sim> threshold, then add to token alignment
+
             max_sim = max(column)
             index = np.argmax(column) # generate the index of the maximum similarity
             token_alignment[stu_tokens[i]] = (des_tokens[int(index)], max_sim)

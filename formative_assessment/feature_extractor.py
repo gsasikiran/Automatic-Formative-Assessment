@@ -10,7 +10,7 @@ __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
 __license__ = ""
 __version__ = ""
-__last_modified__ = "06.01.2020"
+__last_modified__ = "18.01.2020"
 __status__ = "Development"
 
 
@@ -53,8 +53,8 @@ class FeatureExtractor:
         print("preprocessing complete")
 
         # Word alignment/Phrase alignment
-        aligned_words = self.wti.align_tokens(pp_des_ans, pp_stu_ans)
-        print("Word alignment: ", aligned_words)
+        # aligned_words = self.wti.align_tokens(pp_des_ans, pp_stu_ans)
+        # print("Word alignment: ", aligned_words)
 
         print("Calculating similarity score")
         # Get Similarity score
@@ -70,8 +70,13 @@ class FeatureExtractor:
         for token in pp_stu_ans:
             self.words_score[token] = (sem_weight * sim_score[token]) + (lex_weight * lex_score[token])
 
-        print("Probable wrong terms in the answer")
-        print({k: v for (k, v) in self.words_score.items() if v < wrong_term_threshold})
+        print("Probable wrong terms or unwanted terms in the answer")
+        wrong_terms = {k for (k, v) in self.words_score.items() if v < wrong_term_threshold}
+
+        if wrong_terms:
+            print(wrong_terms)
+        else:
+            print("Yay! There are no wrong terms!")
 
     def is_wrong_answer(self, wrong_answer_threshold: float = 0.25, expected_similarity: float = 0.8):
         """
@@ -80,6 +85,9 @@ class FeatureExtractor:
         :param wrong_answer_threshold: float
             The float value in between 0 and 1 of which below the value, we consider the answer as the wrong answer
             default: 0.3
+
+        :param expected_similarity: float
+            The expected similarity of all the answers
 
         :return: bool
             Returns true if the answer is totally or sub-optimally correct, else return false
@@ -93,7 +101,7 @@ class FeatureExtractor:
             total += chunks_score[phrase]
 
         answer_score = total / (expected_similarity * len(chunks_score))  # Average of the answer score
-        print("Answer score: ", answer_score)
+        # print("Answer score: ", answer_score)
         # If the calculated total score is less than given threshold, then we consider that as the wrong_answer
 
         if answer_score < wrong_answer_threshold:
