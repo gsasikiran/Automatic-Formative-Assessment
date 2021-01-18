@@ -53,8 +53,8 @@ class FeatureExtractor:
         print("preprocessing complete")
 
         # Word alignment/Phrase alignment
-        # aligned_words = self.wti.align_tokens(pp_des_ans, pp_stu_ans)
-        # print("Word alignment: ", aligned_words)
+        aligned_words = self.wti.align_tokens(pp_des_ans, pp_stu_ans)
+        print("Word alignment: ", aligned_words)
 
         print("Calculating similarity score")
         # Get Similarity score

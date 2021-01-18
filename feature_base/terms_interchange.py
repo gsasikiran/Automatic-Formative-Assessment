@@ -34,6 +34,7 @@ class InterchangeOfTerms:
         combined_str: str = resolved_ques + " " + des_ans
         resolved_str: str = self.utils.corefer_resolution(combined_str)
 
+        # Extracting desired answer from co-reference resolution
         # Ignoring the space between the question and desired answer
         des_ans = resolved_str[ques_len + 1:]
 
@@ -55,7 +56,6 @@ class InterchangeOfTerms:
         return common_kp
 
     def generate_tree(self, heads: str, answer: str):
-
 
         # TODO: check the relation extraction for the sentences with verbs with "be" form.
         #  For example, "Constructor is a first method in a class."
@@ -114,8 +114,8 @@ class InterchangeOfTerms:
 
     def is_interchanged(self, des_tree, stu_tree):
 
-        des_sents = des_tree#self._create_sent_tree(des_tree)
-        stu_sents = stu_tree#self._create_sent_tree(stu_tree)
+        des_sents = des_tree  # self._create_sent_tree(des_tree)
+        stu_sents = stu_tree  # self._create_sent_tree(stu_tree)
 
         des_values = list(des_sents.values())
         des_values = [item for sublist in des_values for item in sublist]
@@ -124,7 +124,7 @@ class InterchangeOfTerms:
             des_embeds = self.embed.use(des_values)
 
             for topic in stu_sents:
-                #TODO: can create a similarity matrix instead of two for loops
+                # TODO: can create a similarity matrix instead of two for loops
                 for sent in stu_sents[topic]:
                     sent_embed = self.embed.use([sent])[0]
                     sim_scores = []

@@ -28,6 +28,7 @@ class WrongTermIdentification:
         # self.pre_process = PreProcess()
         self.utils = Utilities()
         self.embed = Embedding()
+        self.cos_sim_matrix = np.array([])
 
     def preprocess(self, id, student_answer: str, get_phrases=True):
 
@@ -111,14 +112,14 @@ class WrongTermIdentification:
         """
 
         # Generate embeddings for the tokens (Universal sentence encoder by default)
-        des_embed = self.embed.use(des_tokens)
-        stu_embed = self.embed.use(stu_tokens)
+        des_embed = self.embed.fasttext(des_tokens)
+        stu_embed = self.embed.fasttext(stu_tokens)
 
         # Cosine similar matrix: Heat map of similarity
-        cos_sim_matrix = self.utils.cosine_similarity_matrix(stu_embed, des_embed)
+        self.cos_sim_matrix = self.utils.cosine_similarity_matrix(stu_embed, des_embed)
 
         token_alignment: Dict = {}
-        for i, column in enumerate(cos_sim_matrix):
+        for i, column in enumerate(self.cos_sim_matrix):
             #TODO: put threshold for max_similiarity
             #if max_sim> threshold, then add to token alignment
             max_sim = max(column)
@@ -142,10 +143,10 @@ class WrongTermIdentification:
         """
 
         # Assign embeddings (Universal sentence encoder by default)
-        des_embed = self.embed.use(des_tokens)
-        stu_embed = self.embed.use(stu_tokens)
+        # des_embed = self.embed.use(des_tokens)
+        # stu_embed = self.embed.use(stu_tokens)
 
-        cos_sim_matrix = self.utils.cosine_similarity_matrix(stu_embed, des_embed)
+        # cos_sim_matrix = self.utils.cosine_similarity_matrix(stu_embed, des_embed)
 
         aligned_tokens: Dict = self.align_tokens(des_tokens, stu_tokens)
 
@@ -156,14 +157,9 @@ class WrongTermIdentification:
 
             stu_token_idx = stu_tokens.index(key)
             max_sim = aligned_tokens[key][1] #max_similarity
-            print(cos_sim_matrix[stu_token_idx])
-            print(type(cos_sim_matrix[stu_token_idx]))
-            print(len(cos_sim_matrix[stu_token_idx]))
-            print(max_sim)
-            print(np.where(cos_sim_matrix[stu_token_idx] == max_sim)[0])
-            des_token_idx = int(np.where(np.array(cos_sim_matrix[stu_token_idx]) == max_sim)[0])
+            des_token_idx = np.argmax(self.cos_sim_matrix[stu_token_idx])
 
-            sorted_row = sorted(cos_sim_matrix.T[des_token_idx])[::-1]
+            sorted_row = sorted(self.cos_sim_matrix.T[des_token_idx])[::-1]
 
             rank = (int(np.where(sorted_row == max_sim)[0]) + 1) if len(
                 np.where(sorted_row == max_sim)[0]) == 1 else (int(np.where(sorted_row == max_sim)[0][0]) + 1)
