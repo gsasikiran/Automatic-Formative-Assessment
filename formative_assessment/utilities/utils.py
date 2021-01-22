@@ -16,23 +16,25 @@ import spacy
 from allennlp.predictors import Predictor
 from flair.data import Sentence
 from flair.models import SequenceTagger
+from nltk import WordNetLemmatizer
 from scipy.spatial.distance import cosine
 from spacy.matcher import Matcher
+from nltk.corpus import wordnet
 
 from formative_assessment.utilities.preprocessing import PreProcess
+from formative_assessment.utilities.embed import Embedding
 
 __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
 __license__ = ""
 __version__ = ""
-__last_modified__ = "06.12.2020"
+__last_modified__ = "18.01.2020"
 __status__ = "Development"
 
 
-class Utilities:
+class Utilities(PreProcess):
     def __init__(self):
-        self.preprocess = PreProcess()
-
+        super().__init__()
         self.nlp = spacy.load("en_core_web_lg")
         neuralcoref.add_to_pipe(self.nlp)
         tr = pytextrank.TextRank()
@@ -55,7 +57,7 @@ class Utilities:
 
     @staticmethod
     def get_cosine_similarity(array_1, array_2):
-        return cosine(array_1, array_2)
+        return 1-cosine(array_1, array_2)
 
     def cosine_similarity_matrix(self, array_1, array_2):
         """
@@ -68,11 +70,11 @@ class Utilities:
             Returns the matrix with similarity values
         """
 
-        matrix = np.zeros((len(array_2), len(array_1)))
+        matrix = np.zeros((len(array_1), len(array_2)))
 
-        for i in range(0, len(array_2)):
-            for j in range(0, len(array_1)):
-                matrix[i][j] = float(1 - self.get_cosine_similarity(array_2[i], array_1[j]))
+        for i in range(0, len(array_1)):
+            for j in range(0, len(array_2)):
+                matrix[i][j] = float(self.get_cosine_similarity(array_1[i], array_2[j]))
         return matrix
 
     @staticmethod
@@ -238,13 +240,15 @@ class Utilities:
         updated = ""
 
         for token in doc:
-            if token.text not in articles:
-                updated += token.text + " "
+            if token.text in string.punctuation:
+                updated += token.text
+                continue
 
-        updated_len = len(updated)
+            if token.text.lower() not in articles:
+                updated += " " + token.text
 
         # Return by removing the last space
-        return updated[:updated_len - 1]
+        return updated[1:]
 
     def get_common_keyphrases(self, text1, text2):
 
@@ -256,13 +260,13 @@ class Utilities:
 
         for text in text1_kp:
             filtered_text = self.remove_articles(text)
-            lemmas = self.preprocess.lemmatize(filtered_text)
+            lemmas = self.lemmatize(filtered_text)
             filtered_text = self.tokens_to_str(lemmas)
             text1_updated.add(filtered_text)
 
         for text in text2_kp:
             filtered_text = self.remove_articles(text)
-            lemmas = self.preprocess.lemmatize(filtered_text)
+            lemmas = self.lemmatize(filtered_text)
             filtered_text = self.tokens_to_str(lemmas)
             text2_updated.add(filtered_text)
 
@@ -287,9 +291,58 @@ class Utilities:
 
     def split_by_punct(self, text: str):
         """
-
-        :param text:
-        :return:
+            Split the sentence by punctuations
+        :param text: str
+            Sentence that has to be split
+        :return: List[str]
+            Split sentences with punctuations
         """
 
-        return re.split("[?.,:;]", text)
+        return re.split("[?.,:;]/* ", text)
+
+    @staticmethod
+    def wordnet_syn(word_1: str):
+
+        word_syn = wordnet.synsets(word_1)
+
+        synonyms = set()
+
+        for syn in word_syn:
+            for lemma in syn.lemmas():
+                synonyms.add(lemma.name().lower())
+
+        return synonyms
+
+    @staticmethod
+    def wordnet_antonym(word_1: str):
+
+        word_syn = wordnet.synsets(word_1)
+
+        antonyms = set()
+
+        for syn in word_syn:
+            for lemma in syn.lemmas():
+                if lemma.antonyms():
+                    for ant in lemma.antonyms():
+                        antonyms.add(ant.name().lower())
+
+        return antonyms
+
+    def word_similarity(self, word1: str, word2: str):
+        first = self.nlp(word1)
+        second = self.nlp(word2)
+
+        return first.similarity(second)
+
+    def get_wordnet_sim(self, word_1: str, word_2: str):
+
+        lemmatizer = WordNetLemmatizer()
+        check = lemmatizer.lemmatize(word_2)
+
+        synonyms = self.wordnet_syn(word_1)
+        antonyms = self.wordnet_antonym(word_1)
+
+        if check in synonyms:
+            return 1
+        elif check in antonyms:
+            return 0

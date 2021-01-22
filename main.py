@@ -15,23 +15,26 @@ from formative_assessment.dataset_extractor import DataExtractor, ConvertDataTyp
 from formative_assessment.feature_extractor import FeatureExtractor
 import time
 import warnings
+import random
 
 __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
 __license__ = ""
 __version__ = ""
-__last_modified__ = "06.12.2020"
+__last_modified__ = "06.01.2020"
 __status__ = "Development"
 
 if __name__ == '__main__':
     PATH = "dataset/mohler/"
+
     # Convert the data into  dictionary with ids, their corresponding questions, desired answers and student answers
     convert_data = ConvertDataType(PATH)
     dataset_dict = convert_data.to_dict()
 
-    id_list = dataset_dict.keys()
+    id_list = list(dataset_dict.keys())
 
     for s_no in id_list:
+
         print('Id = ', s_no)
 
         question = dataset_dict[s_no]["question"]
@@ -41,15 +44,19 @@ if __name__ == '__main__':
         print("Desired answer: ", desired_answer)
         # temporary student answer
         student_answers = dataset_dict[s_no]["stu_answers"]
+        scores = dataset_dict[s_no]["scores"]
 
-        # for student_answer in student_answers:
-        for answer in student_answers:
+        for i, _ in enumerate(student_answers):
             start = time.time()
-            print(answer)
-            extract_features = FeatureExtractor(s_no, answer, dataset_dict, PATH)
+            student_answer = student_answers[i]
+            print("Student answer: ", student_answer)
+            print("Assigned score: ", scores[i])
+            warnings.filterwarnings("ignore")
+            extract_features = FeatureExtractor(s_no, student_answer, dataset_dict, PATH)
             extract_features.get_wrong_terms()
-            extract_features.is_wrong_answer() # Wrong answers work only when get_wrong_terms method is run, else returns None
+            extract_features.is_wrong_answer()
+            # Wrong answers work only when get_wrong_terms method is run, else returns None
             extract_features.get_suboptimal_answers()
-            # extract_features.get_interchanged_terms()
-            print("It took ",  time.time() - start, " secs")
+            extract_features.get_interchanged_terms()
+            print("It took ", time.time() - start, " secs")
             print("----------------------------------------------------------")
