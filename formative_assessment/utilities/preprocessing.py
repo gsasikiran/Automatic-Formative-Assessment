@@ -82,10 +82,14 @@ class PreProcess:
 
         answer_tokens = [token for token in answer_tokens if self.lemmatize(token)[0] not in question_tokens]
 
-        demoted_answer = ''
+        if answer_tokens:
+            demoted_answer = ''
 
-        for i in range(len(answer_tokens)):
-            if i == len(answer_tokens) - 1:
-                demoted_answer += answer_tokens[i]
-                return demoted_answer
-            demoted_answer += answer_tokens[i] + ' '
+            for i in range(len(answer_tokens)):
+                if i == len(answer_tokens) - 1:
+                    demoted_answer += answer_tokens[i]
+                    return demoted_answer
+                demoted_answer += answer_tokens[i] + ' '
+
+        else:
+            return None

@@ -17,12 +17,13 @@ from allennlp.predictors import Predictor
 from flair.data import Sentence
 from flair.models import SequenceTagger
 from nltk import WordNetLemmatizer
+from rake_nltk import Rake
 from scipy.spatial.distance import cosine
 from spacy.matcher import Matcher
 from nltk.corpus import wordnet
 
 from formative_assessment.utilities.preprocessing import PreProcess
-from formative_assessment.utilities.embed import Embedding
+from formative_assessment.utilities.embed import AssignEmbedding
 
 __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
@@ -57,7 +58,8 @@ class Utilities(PreProcess):
 
     @staticmethod
     def get_cosine_similarity(array_1, array_2):
-        return 1-cosine(array_1, array_2)
+        similarity = 1 - cosine(array_1, array_2)
+        return similarity
 
     def cosine_similarity_matrix(self, array_1, array_2):
         """
@@ -76,6 +78,15 @@ class Utilities(PreProcess):
             for j in range(0, len(array_2)):
                 matrix[i][j] = float(self.get_cosine_similarity(array_1[i], array_2[j]))
         return matrix
+
+    def assign_cos_sim_matrix(self, tokens_1, tokens_2):
+
+        embed = AssignEmbedding(embed_name="use")
+        embeddings_1 = embed.assign(tokens_1)
+        embeddings_2 = embed.assign(tokens_2)
+        sim_matrix = self.cosine_similarity_matrix(embeddings_1, embeddings_2)
+
+        return sim_matrix.T
 
     @staticmethod
     def get_frequency(desired_words, total_tokens):
@@ -197,6 +208,12 @@ class Utilities(PreProcess):
             phrases.append(p.text)
 
         return phrases
+
+    def extract_phrases_rake(self, text: str):
+
+        r = Rake()
+        r.extract_keywords_from_text(text)
+        return r.get_ranked_phrases()
 
     @staticmethod
     def tokens_to_str(tokens: List[str]):
@@ -346,3 +363,33 @@ class Utilities(PreProcess):
             return 1
         elif check in antonyms:
             return 0
+
+    def align_tokens(self, des_tokens: List[str], stu_tokens: List[str], align_threshold = 0.4):
+        """
+            Generate the tuple of most similar tokens of students answers in the desired answer
+
+        :param des_tokens: List[str]
+            List of desired answer's tokens
+        :param stu_tokens: List[str]
+            List of student answer's tokens
+        :param align_threshold: float
+            The threshold between 0 and 1 to generate
+
+        :return: dict
+            Keys: student tokens
+            Values: tuple(most similar desired answer token, the cosine similarity between the tokens)
+        """
+
+        cos_sim_matrix = self.assign_cos_sim_matrix(des_tokens, stu_tokens)
+
+        token_alignment = {}
+
+        for i, row in enumerate(cos_sim_matrix):
+            max_sim = max(row)
+            if max_sim > align_threshold:
+                index = np.argmax(row)  # generate the index of the maximum similarity
+                token_alignment[stu_tokens[i]] = (des_tokens[int(index)], max_sim)
+            else:
+                continue
+
+        return token_alignment

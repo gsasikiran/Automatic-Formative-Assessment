@@ -2,13 +2,13 @@ import re
 import numpy as np
 
 from formative_assessment.utilities.utils import Utilities
-from formative_assessment.utilities.embed import Embedding
+from formative_assessment.utilities.embed import AssignEmbedding
 
 
 class InterchangeOfTerms:
     def __init__(self):
         self.utils = Utilities()
-        self.embed = Embedding()
+        self.embed = AssignEmbedding("use")
 
     def get_question_terms(self, question: str):
         """
@@ -112,35 +112,44 @@ class InterchangeOfTerms:
 
         return sents
 
-    def is_interchanged(self, des_tree, stu_tree):
+    def is_interchanged(self, des_tree, stu_tree, interchange_threshold=0.5):
 
         des_sents = des_tree  # self._create_sent_tree(des_tree)
         stu_sents = stu_tree  # self._create_sent_tree(stu_tree)
 
         des_values = list(des_sents.values())
-        des_values = [item for sublist in des_values for item in sublist]
+        des_values = [self.utils.remove_articles(item) for sublist in des_values for item in sublist]
 
+        print("Interchange of phrases: ")
         if des_values:
-            des_embeds = self.embed.use(des_values)
+            des_embeds = self.embed.assign(des_values)
 
             for topic in stu_sents:
-                # TODO: can create a similarity matrix instead of two for loops
-                for sent in stu_sents[topic]:
-                    sent_embed = self.embed.use([sent])[0]
-                    sim_scores = []
+                if des_sents[topic] and not stu_sents[topic]:
+                    print("You have not answered about the topic \'" + topic + "\'")
 
-                    for embed in des_embeds:
-                        sim_scores.append(self.utils.get_cosine_similarity(sent_embed, embed))
+                else:
+                    # TODO: can create a similarity matrix instead of two for loops
+                    for sent in stu_sents[topic]:
 
-                    index = int(np.argmax(np.asarray(sim_scores)))
+                        sent = self.utils.remove_articles(sent)
+                        sent_embed = self.embed.assign([sent])  # [0]
+                        sim_scores = []
 
-                    print("Interchange of phrases: ")
-                    if des_values[index] in des_sents[topic]:
-                        # print("The sentence \"" + sent + "\" is correctly written for topic \"" + topic + "\"")
-                        continue
-                    else:
-                        for des_topic in des_sents:
-                            if des_values[index] in des_sents[des_topic]:
-                                print(
-                                    "You have interchanged the terms/phrase of topic \"" + des_topic + "\" to the topic \"" + topic,
-                                    "\" for the sentence \"" + sent + "\"")
+                        for embed in des_embeds:
+                            sim_scores.append(self.utils.get_cosine_similarity(sent_embed, embed))
+
+                        if np.max(np.asarray(sim_scores)) > interchange_threshold:
+                            index = int(np.argmax(np.asarray(sim_scores)))
+
+                            if des_values[index] in des_sents[topic]:
+                                # print("The sentence \"" + sent + "\" is correctly written for topic \"" + topic +
+                                # "\"")
+                                continue
+                            else:
+                                for des_topic in des_sents:
+                                    if des_values[index] in des_sents[des_topic]:
+                                        print("You have interchanged the terms/phrase of topic \"" + des_topic + "\" to "
+                                              "the topic \"" + topic + "\" for the sentence \"" + sent + "\"")
+                        else:
+                            continue

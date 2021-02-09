@@ -1,13 +1,13 @@
 """
  Implementation to extract the wrong terms/phrases in a student answer automatically.
 """
-from math import sqrt
 from typing import List, Dict
 
 import numpy as np
+from scipy.special import softmax
 
 from formative_assessment.dataset_extractor import DataExtractor
-from formative_assessment.utilities.embed import Embedding
+from formative_assessment.utilities.embed import AssignEmbedding
 from formative_assessment.utilities.preprocessing import PreProcess
 from formative_assessment.utilities.utils import Utilities
 
@@ -25,9 +25,9 @@ class WrongTermIdentification:
         self.PATH = DIR_PATH
         self.extract_data = DataExtractor(DIR_PATH)
         self.dataset_dict = dataset
-        # self.pre_process = PreProcess()
+
         self.utils = Utilities()
-        self.embed = Embedding()
+
         self.cos_sim_matrix = np.array([])
 
     def preprocess(self, id, student_answer: str, get_phrases=True):
@@ -50,12 +50,12 @@ class WrongTermIdentification:
         des_ans: str = self.dataset_dict[id]["des_answer"]
 
         # Remove articles
-        des_demoted = self.utils.remove_articles(des_ans)
-        stu_demoted = self.utils.remove_articles(student_answer)
+        des_filtered = self.utils.remove_articles(des_ans)
+        stu_filtered = self.utils.remove_articles(student_answer)
 
         # Splitting answers by
-        des_sents = self.utils.split_by_punct(des_demoted)
-        stu_sents = self.utils.split_by_punct(stu_demoted)
+        des_sents = self.utils.split_by_punct(des_filtered)
+        stu_sents = self.utils.split_by_punct(stu_filtered)
 
         des_chunks: List[str] = []
         stu_chunks: List[str] = []
@@ -63,69 +63,24 @@ class WrongTermIdentification:
         # Phrase extraction
         if get_phrases:
             for sent in des_sents:
-                # Question demoting
-                des_demoted: str = self.utils.demote_ques(question, sent)
-                if des_demoted == "":
-                    continue
-                des_chunks.extend(self.utils.extract_phrases(des_demoted))
+                des_chunks.extend(self.utils.extract_phrases(sent))
 
             for sent in stu_sents:
-                stu_demoted: str = self.utils.demote_ques(question, sent)
-                if stu_demoted == "":
-                    continue
-                stu_chunks.extend(self.utils.extract_phrases(stu_demoted))
+                stu_chunks.extend(self.utils.extract_phrases(sent))
 
         # Tokenization
         else:
             for sent in des_sents:
-
-                # Question demoting
-                des_demoted: str = self.utils.demote_ques(question, sent)
-                if des_demoted == "":
-                    continue
-                des_chunks.extend(self.utils.extract_phrases(des_demoted))
+                des_chunks.extend(self.utils.tokenize(sent))
 
             for sent in stu_sents:
-                stu_demoted: str = self.utils.demote_ques(question, sent)
-                if stu_demoted == "":
-                    continue
-                stu_chunks.extend(self.utils.extract_phrases(stu_demoted))
+                stu_chunks.extend(self.utils.tokenize(sent))
 
         # Stopword removal
         des_filtered = self.utils.remove_stopwords(des_chunks)
         stu_filtered = self.utils.remove_stopwords(stu_chunks)
 
         return des_filtered, stu_filtered
-
-    def align_tokens(self, des_tokens: List[str], stu_tokens: List[str]):
-        """
-            Generate the tuple of most similar tokens of students answers in the desired answer
-
-        :param des_tokens: List[str]
-            List of desired answer's tokens
-        :param stu_tokens: List[str]
-            List of student answer's tokens
-
-        :return: dict
-            Keys: student tokens
-            Values: tuple(most similar desired answer token, the cosine similarity between the tokens)
-        """
-
-        # Generate embeddings for the tokens (Universal sentence encoder by default)
-        des_embed = self.embed.fasttext(des_tokens)
-        stu_embed = self.embed.fasttext(stu_tokens)
-
-        # Cosine similar matrix: Heat map of similarity
-        self.cos_sim_matrix = self.utils.cosine_similarity_matrix(stu_embed, des_embed)
-
-        token_alignment: Dict = {}
-        for i, column in enumerate(self.cos_sim_matrix):
-
-            max_sim = max(column)
-            index = np.argmax(column) # generate the index of the maximum similarity
-            token_alignment[stu_tokens[i]] = (des_tokens[int(index)], max_sim)
-
-        return token_alignment
 
     def _rank_and_sim(self, des_tokens: List[str], stu_tokens: List[str]):
         """
@@ -140,14 +95,8 @@ class WrongTermIdentification:
             Dict of student answers with keys of tokens (str) and values with the ranks (int)
             Dict of student answers with keys of tokens (str) and values with their max similarities (float)
         """
-
-        # Assign embeddings (Universal sentence encoder by default)
-        # des_embed = self.embed.use(des_tokens)
-        # stu_embed = self.embed.use(stu_tokens)
-
-        # cos_sim_matrix = self.utils.cosine_similarity_matrix(stu_embed, des_embed)
-
-        aligned_tokens: Dict = self.align_tokens(des_tokens, stu_tokens)
+        self.cos_sim_matrix = self.utils.assign_cos_sim_matrix(des_tokens, stu_tokens)
+        aligned_tokens: Dict = self.utils.align_tokens(des_tokens, stu_tokens, align_threshold=0)
 
         rank_dict = {}
         sim_dict = {}
@@ -160,8 +109,12 @@ class WrongTermIdentification:
 
             sorted_row = sorted(self.cos_sim_matrix.T[des_token_idx])[::-1]
 
-            rank = (int(np.where(sorted_row == max_sim)[0]) + 1) if len(
-                np.where(sorted_row == max_sim)[0]) == 1 else (int(np.where(sorted_row == max_sim)[0][0]) + 1)
+            index = np.where(sorted_row == max_sim)
+
+            if len(index[0]) == 1:
+                rank = (int(index[0]) + 1)
+            else:
+                rank = (int(index[0][0]) + 1)
 
             rank_dict[key] = rank
             sim_dict[key] = max_sim
@@ -184,6 +137,8 @@ class WrongTermIdentification:
 
         rank_w, sim_w = self._rank_and_sim(des_tokens, stu_tokens)
         score_sw = {}
+
+        # TODO: Rank can be 1+0.2 instead of 2. That will decrease the difference of ranks while you can also try logs.
 
         for token in stu_tokens:
             score_sw[token] = (1 / rank_w[token]) * sim_w[token]
@@ -254,3 +209,26 @@ class WrongTermIdentification:
             # score_lw[token] = sqrt(score)
             score_lw[token] = score
         return score_lw
+
+    def get_softmax_sim(self, des_tokens, stu_tokens):
+        """
+
+        :param des_tokens:
+        :param stu_tokens:
+        :return:
+        """
+
+        self.cos_sim_matrix = self.utils.assign_cos_sim_matrix(stu_tokens, des_tokens)
+        softmax_matrix = softmax(self.cos_sim_matrix, axis=1) # Column axis
+
+        weighted_matrix = np.sqrt(np.multiply(self.cos_sim_matrix, softmax_matrix))
+        sim_matrix = np.average(weighted_matrix, axis=1)
+
+        sim_score_dict = {}
+
+        # assert len(stu_tokens) ==  sim_matrix.size
+
+        for i in range(0,len(stu_tokens)):
+            sim_score_dict[stu_tokens[i]] = sim_matrix[i]
+
+        return sim_score_dict
