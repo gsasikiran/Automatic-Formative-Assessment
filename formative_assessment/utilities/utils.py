@@ -21,6 +21,7 @@ from rake_nltk import Rake
 from scipy.spatial.distance import cosine
 from spacy.matcher import Matcher
 from nltk.corpus import wordnet
+from scipy.special import softmax
 
 from formative_assessment.utilities.preprocessing import PreProcess
 from formative_assessment.utilities.embed import AssignEmbedding
@@ -209,11 +210,35 @@ class Utilities(PreProcess):
 
         return phrases
 
-    def extract_phrases_rake(self, text: str):
+    @staticmethod
+    def extract_phrases_rake(text: str):
 
         r = Rake()
         r.extract_keywords_from_text(text)
         return r.get_ranked_phrases()
+
+    @staticmethod
+    def softmax_ranked_phrases_rake(text: str):
+
+        r = Rake()
+        r.extract_keywords_from_text(text)
+
+        scores = r.get_ranked_phrases_with_scores()
+
+        phrases = []
+        softmax_scores = np.zeros((1, len(scores)))
+
+        for i, tup in enumerate(scores):
+            softmax_scores[0][i] = tup[0]
+            phrases.append(tup[1])
+
+        softmax_scores = softmax(softmax_scores)
+        score_dict = {}
+
+        for i, phrase in enumerate(phrases):
+            score_dict[phrase] = softmax_scores[0][i]
+
+        return score_dict
 
     @staticmethod
     def tokens_to_str(tokens: List[str]):

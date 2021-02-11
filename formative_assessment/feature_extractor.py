@@ -117,14 +117,17 @@ class FeatureExtractor:
         # We only extract noun existing phrases, as the phrases like "called explicitly", "whereas needs" will not
         # provide explicit understanding
 
-        missed_phrases = partial_answers.get_noun_phrases(missed_phrases)
+        # missed_phrases = partial_answers.get_noun_phrases(missed_phrases)
         print("Unanswered topics")
 
         if missed_phrases:
             print("The student didn't mention about: ")
             print(missed_phrases)
+
         else:
             print("You have written about all the topics")
+
+        return missed_phrases
 
     def get_interchanged_terms(self):
         """
@@ -152,4 +155,4 @@ class FeatureExtractor:
         for topic in stu_ans_rel:
             sents_num += sents_num + len(stu_ans_rel[topic])
 
-        return interchanged, missed_topics, sents_num
+        return interchanged, missed_topics, sents_num, len(des_ans_rel)
