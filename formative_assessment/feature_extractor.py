@@ -1,6 +1,8 @@
 """
 Abstraction of all the features that are to be extracted for the formative assessment.
 """
+import regex as re
+
 from feature_base.terms_interchange import InterchangeOfTerms
 from feature_base.wrong_term_identification import WrongTermIdentification
 from feature_base.partial_terms import PartialTerms
@@ -45,6 +47,7 @@ class FeatureExtractor:
             Returns the dictionary with keys as wrong terms and the corresponding values are their scores
         """
         wti = WrongTermIdentification(self.dataset_dict, DIR_PATH=self.dataset_path)
+
         print("Extracting wrong terms...")
 
         pp_des_ans, pp_stu_ans = wti.preprocess(self.question_id, self.stu_ans)
@@ -72,8 +75,10 @@ class FeatureExtractor:
 
         if wrong_terms_demoted:
             print(wrong_terms_demoted)
+            return wrong_terms_demoted
         else:
             print("Yay! There are no wrong terms!")
+            return None
 
     def is_wrong_answer(self, wrong_answer_threshold: float = -0.5, expected_similarity: float = 0.8):
         """
@@ -97,17 +102,12 @@ class FeatureExtractor:
         for phrase in chunks_score:
             total = total + chunks_score[phrase]
 
-        total = total / (len(chunks_score)) # Average of the answer score
+        total = total / (len(chunks_score))  # Average of the answer score
 
         answer_score = (2 * total) - 1  # normalizing between -1 and 1 from 0 and 1
         print("Answer score: ", answer_score)
 
-        if answer_score < wrong_answer_threshold:
-            print("Wrong answer")
-        else:
-            print("Not a wrong answer")
-
-        return answer_score > wrong_answer_threshold
+        return answer_score < wrong_answer_threshold
 
     def get_partial_answers(self):
 
@@ -130,15 +130,26 @@ class FeatureExtractor:
         """
             Prints which terms has been interchanged in the student answer
 
-        :return: None
+        :return: List, set
+            List: Interchanged terms in the list for each interchanged terms.
+            The order of triplets are ["desired topic", "written topic", "written sentence"]
+            Set: Missed topics
+            The missed topics asked in question and written in desired answer but not presented in the student answer
+
         """
         iot = InterchangeOfTerms()
 
-        heads = iot.get_topics(self.question, self.des_ans)
+        topics = iot.get_topics(self.question, self.des_ans)
         # TODO: if the heads are null, then we assign the best key-phrase as the head and corresponding verbs as the
         #  tree
-        des_ans_rel = iot.generate_tree(heads, self.des_ans)
+        des_ans_rel = iot.generate_tree(topics, self.des_ans)
         stu_ans = self.utils.corefer_resolution(self.stu_ans)
-        stu_ans_rel = iot.generate_tree(heads, stu_ans)
+        stu_ans_rel = iot.generate_tree(topics, stu_ans)
 
-        iot.is_interchanged(des_ans_rel, stu_ans_rel)
+        interchanged, missed_topics = iot.is_interchanged(des_ans_rel, stu_ans_rel)
+
+        sents_num = 0
+        for topic in stu_ans_rel:
+            sents_num += sents_num + len(stu_ans_rel[topic])
+
+        return interchanged, missed_topics, sents_num

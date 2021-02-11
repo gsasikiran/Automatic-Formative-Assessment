@@ -96,7 +96,7 @@ class WrongTermIdentification:
             Dict of student answers with keys of tokens (str) and values with their max similarities (float)
         """
         self.cos_sim_matrix = self.utils.assign_cos_sim_matrix(des_tokens, stu_tokens)
-        aligned_tokens: Dict = self.utils.align_tokens(des_tokens, stu_tokens, align_threshold=0)
+        aligned_tokens: Dict = self.utils.align_tokens(des_tokens, stu_tokens, align_threshold=-1)
 
         rank_dict = {}
         sim_dict = {}
@@ -104,7 +104,7 @@ class WrongTermIdentification:
         for key in aligned_tokens:
 
             stu_token_idx = stu_tokens.index(key)
-            max_sim = aligned_tokens[key][1] #max_similarity
+            max_sim = aligned_tokens[key][1]  # max_similarity
             des_token_idx = np.argmax(self.cos_sim_matrix[stu_token_idx])
 
             sorted_row = sorted(self.cos_sim_matrix.T[des_token_idx])[::-1]
@@ -165,19 +165,17 @@ class WrongTermIdentification:
         stu_answers_id = self.extract_data.get_student_answers(id)
         stu_answers_all = self.extract_data.get_student_answers()
 
-        # Extracting the other student answers, that do not belong to given id. These are used to check the false
-        # positives of the tokens
-        stu_answers_other = [answer for answer in stu_answers_all if answer not in stu_answers_id]
-
         tokenized_answers = []
-        preprocess = PreProcess()
 
         if positive:
             for i in range(len(stu_answers_id)):
-                tokenized_answers.append(preprocess.tokenize(stu_answers_id[i]))
+                tokenized_answers.append(self.utils.extract_phrases(stu_answers_id[i]))
         else:
+            # Extracting the other student answers, that do not belong to given id. These are used to check the false
+            # positives of the tokens
+            stu_answers_other = [answer for answer in stu_answers_all if answer not in stu_answers_id]
             for i in range(len(stu_answers_other)):
-                tokenized_answers.append(preprocess.tokenize(stu_answers_other[i]))
+                tokenized_answers.append(self.utils.extract_phrases(stu_answers_other[i]))
 
         return self.utils.get_frequency(student_tokens, tokenized_answers)
 
@@ -219,7 +217,7 @@ class WrongTermIdentification:
         """
 
         self.cos_sim_matrix = self.utils.assign_cos_sim_matrix(stu_tokens, des_tokens)
-        softmax_matrix = softmax(self.cos_sim_matrix, axis=1) # Column axis
+        softmax_matrix = softmax(self.cos_sim_matrix, axis=1)  # Column axis
 
         weighted_matrix = np.sqrt(np.multiply(self.cos_sim_matrix, softmax_matrix))
         sim_matrix = np.average(weighted_matrix, axis=1)
@@ -228,7 +226,7 @@ class WrongTermIdentification:
 
         # assert len(stu_tokens) ==  sim_matrix.size
 
-        for i in range(0,len(stu_tokens)):
+        for i in range(0, len(stu_tokens)):
             sim_score_dict[stu_tokens[i]] = sim_matrix[i]
 
         return sim_score_dict

@@ -120,6 +120,9 @@ class InterchangeOfTerms:
         des_values = list(des_sents.values())
         des_values = [self.utils.remove_articles(item) for sublist in des_values for item in sublist]
 
+        missed_topics = set()
+        interchanged = []
+
         print("Interchange of phrases: ")
         if des_values:
             des_embeds = self.embed.assign(des_values)
@@ -127,6 +130,7 @@ class InterchangeOfTerms:
             for topic in stu_sents:
                 if des_sents[topic] and not stu_sents[topic]:
                     print("You have not answered about the topic \'" + topic + "\'")
+                    missed_topics.add(topic)
 
                 else:
                     # TODO: can create a similarity matrix instead of two for loops
@@ -149,7 +153,12 @@ class InterchangeOfTerms:
                             else:
                                 for des_topic in des_sents:
                                     if des_values[index] in des_sents[des_topic]:
+
                                         print("You have interchanged the terms/phrase of topic \"" + des_topic + "\" to "
                                               "the topic \"" + topic + "\" for the sentence \"" + sent + "\"")
+                                        interchanged.append([des_topic, topic, sent])
+
                         else:
                             continue
+
+        return interchanged, missed_topics
