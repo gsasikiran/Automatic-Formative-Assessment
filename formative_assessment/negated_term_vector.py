@@ -8,13 +8,25 @@ import spacy
 
 from scipy.spatial.distance import cosine
 
+from individual_files.negated_term_vector import FlipNegatedTermVector
+
 
 class FlipNegatedTermVector:
 
     def __init__(self):
         self.nlp = spacy.load('en_core_web_lg')
+        self._negations = {"not", "no", "never", "nothing", "neither", "nor", "none", "n't", "cannot", "doesn't", "have'nt"}
 
-    def _get_negated_words(self, sent):
+    def is_negation(self, token):
+        """
+            Return whether the given token is negation or not
+        :param token: str
+        :return: bool
+            Returns true, if the token is a negation, else false
+        """
+        return token in self._negations
+
+    def get_negated_words(self, sent):
         """
             Generate the list of the words that are affected by negation
         :param sent: string
@@ -22,20 +34,23 @@ class FlipNegatedTermVector:
         :return: list
             List of words that are directly affected by negation
         """
-
         # Split the words at negation
         # By observation, it seems that negated terms such as 'no' and 'not' do not affect the preceding words.
         # Instead they affect the succeeding (first occurring noun/pronoun/adjective/verb/adverb) key-word
-        split_sent_list = sent.split('not ')[1:]
+        words = sent.split()
         negative_word_list = []
 
-        for chunk in split_sent_list:
-            doc = self.nlp(chunk)
-            for token in doc:
-                if token.pos_ == 'NOUN' or token.pos_ == 'PRON' or token.pos_ == 'ADJ' \
-                        or token.pos_ == 'VERB' or token.pos_ == 'ADV':
-                    negative_word_list.append(token.text)
-                    break
+        for word in words:
+            if self.is_negation(word):
+                split_sent_list = sent.split(word + " ")[1:]
+
+                for chunk in split_sent_list:
+                    doc = self.nlp(chunk)
+                    for token in doc:
+                        if token.pos_ == 'NOUN' or token.pos_ == 'PRON' or token.pos_ == 'ADJ' \
+                                or token.pos_ == 'VERB' or token.pos_ == 'ADV':
+                            negative_word_list.append(token.text)
+                            break
 
         return negative_word_list
 
@@ -51,7 +66,7 @@ class FlipNegatedTermVector:
         """
 
         doc = self.nlp(sent)
-        negative_words = self._get_negated_words(sent)
+        negative_words = self.get_negated_words(sent)
         sent_embed = np.zeros(doc[0].vector.size)
 
         for token in doc:
@@ -69,9 +84,9 @@ class FlipNegatedTermVector:
 
 
 if __name__ == '__main__':
-    ref = 'I am great.'
+    ref = 'can return a value'
 
-    var_1 = 'I am not great.'
+    var_1 = 'cannot return a value'
 
     fntv = FlipNegatedTermVector()
 
@@ -82,4 +97,4 @@ if __name__ == '__main__':
     # var2_embed = fntv.get_sentence_embed(var_2)
 
     print('Distance between  "%s" and "%s" without flipping: %f' % (ref, var_1, 1 - cosine(ref_embed, var1_wo_flip)))
-    print('Distance between "%s" and "%s" with flipping: %f'%(ref, var_1, 1-cosine(ref_embed, var1_embed)))
+    print('Distance between "%s" and "%s" with flipping: %f' % (ref, var_1, 1 - cosine(ref_embed, var1_embed)))

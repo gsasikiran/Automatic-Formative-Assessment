@@ -14,14 +14,18 @@ Input: Directory path of the dataset. The directory path should contain answers.
 from formative_assessment.dataset_extractor import DataExtractor, ConvertDataType
 from formative_assessment.feature_extractor import FeatureExtractor
 import time
+import os
 import warnings
 import random
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
+warnings.filterwarnings("ignore")
 
 __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
 __license__ = ""
 __version__ = ""
-__last_modified__ = "06.01.2020"
+__last_modified__ = "08.02.2020"
 __status__ = "Development"
 
 if __name__ == '__main__':
@@ -33,8 +37,12 @@ if __name__ == '__main__':
 
     id_list = list(dataset_dict.keys())
 
-    for s_no in id_list:
+    r = random.Random(7)
 
+    for i in range(0,20):
+
+        s_no = r.choice(id_list)
+        index = r.randint(0, 10)
         print('Id = ', s_no)
 
         question = dataset_dict[s_no]["question"]
@@ -46,17 +54,17 @@ if __name__ == '__main__':
         student_answers = dataset_dict[s_no]["stu_answers"]
         scores = dataset_dict[s_no]["scores"]
 
-        for i, _ in enumerate(student_answers):
-            start = time.time()
-            student_answer = student_answers[i]
-            print("Student answer: ", student_answer)
-            print("Assigned score: ", scores[i])
-            warnings.filterwarnings("ignore")
-            extract_features = FeatureExtractor(s_no, student_answer, dataset_dict, PATH)
-            extract_features.get_wrong_terms()
-            extract_features.is_wrong_answer()
-            # Wrong answers work only when get_wrong_terms method is run, else returns None
-            extract_features.get_suboptimal_answers()
-            extract_features.get_interchanged_terms()
-            print("It took ", time.time() - start, " secs")
-            print("----------------------------------------------------------")
+        # for i, _ in enumerate(student_answers):
+        start = time.time()
+        student_answer = student_answers[index]
+        print("Student answer: ", student_answer)
+        print("Assigned score: ", scores[index])
+        extract_features = FeatureExtractor(s_no, student_answer, dataset_dict)
+        extract_features.is_not_answered()
+        extract_features.get_incorrect_terms()
+        extract_features.is_wrong_answer()
+        # Wrong answers work only when get_wrong_terms method is run, else returns None
+        extract_features.get_partial_answers()
+        extract_features.get_interchanged_terms()
+        print("It took ", time.time() - start, " secs")
+        print("----------------------------------------------------------")
