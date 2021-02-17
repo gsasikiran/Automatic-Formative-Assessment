@@ -3,25 +3,33 @@ import numpy as np
 import gensim
 import tensorflow_hub as hub
 from bert_embedding import BertEmbedding
+from allennlp.modules.elmo import Elmo, batch_to_ids
 from formative_assessment.utilities.preprocessing import PreProcess
 from formative_assessment.negated_term_vector import FlipNegatedTermVector
 
+
 class Embedding:
+
     def __init__(self, name: str):
         self.name = name
         if name == "use":
             self.url = "https://tfhub.dev/google/universal-sentence-encoder/4"
             self._embed = hub.load(self.url)
+
         elif name == "elmo":
-            self.url = "https://tfhub.dev/google/elmo/3"
-            self._embed = hub.load(self.url)
+
+            self.options_file = "https://allennlp.s3.amazonaws.com/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
+            self.weight_file = "https://allennlp.s3.amazonaws.com/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
+            self._embed = Elmo(self.options_file, self.weight_file, 3, dropout=0)
+
         elif name == "fasttext":
             self._ft_embed = gensim.models.FastText.load('/home/sgaddi2s/master_thesis/weights/combined/fasttext'
                                                          '/ft').wv
+        elif name == "bert":
+            self._bert_embed = BertEmbedding()
+
         else:
             LookupError("We are not currently offering such embeddings called \'", name, "\'")
-
-        self._bert_embed = BertEmbedding()
 
         self.preprocess = PreProcess()
 
@@ -39,19 +47,27 @@ class Embedding:
 
         return embed_array
 
-    def elmo(self, phrases: List[str]):
+    def elmo(self, phrases: List[str], embed_dim = 1024):
         """
 
         :param phrases:
+        :param embed_dim:
         :return:
         """
-        embeddings = self._embed(phrases)
 
-        embed_array = []
-        for i in range(len(embeddings)):
-            embed_array.append(embeddings[i].numpy())
+        phrases_embed = np.zeros((len(phrases), embed_dim))
 
-        return embed_array
+        for i, phrase in enumerate(phrases):
+            tokens = self.preprocess.tokenize(phrase.lower())
+            # We put phrases into [],as elmo considers list inside the list as sentences
+            character_ids = batch_to_ids(([tokens]))
+            # embeddings are tensors of size [3, 1, len(phrases), 1024].
+            # Here 3 refers to number of LSTM layers. 1 refers to number of sentences. 1024 is embedding dimension
+            embeddings = self._embed(character_ids)["elmo_representations"][-1].detach().numpy()[0]
+
+            phrases_embed[i] = self._mowe(embeddings)
+
+        return phrases_embed
 
     def fasttext(self, phrases: List[str], embed_dim=300):
         """
@@ -69,14 +85,14 @@ class Embedding:
             tokens = self.preprocess.tokenize(phrase.lower())
             embeddings = np.zeros((len(tokens), embed_dim))
 
-            negation_indices =[]
+            negation_indices = []
             for j, token in enumerate(tokens):
                 if fntv.is_negation(token):
                     negation_indices.append(j)
                     continue
                 elif token in negated_terms:
                     embeddings[j] = (-1) * self._ft_embed[token]
-                    negated_terms.remove(token) # We remove to assign negative vector only once.
+                    negated_terms.remove(token)  # We remove to assign negative vector only once.
                 else:
                     embeddings[j] = self._ft_embed[token]
 

@@ -29,18 +29,19 @@ __last_modified__ = "08.02.2020"
 __status__ = "Development"
 
 if __name__ == '__main__':
-    PATH = "dataset/mohler/"
+    PATH = "dataset/mohler/cleaned/"
 
     # Convert the data into  dictionary with ids, their corresponding questions, desired answers and student answers
+
     convert_data = ConvertDataType(PATH)
     dataset_dict = convert_data.to_dict()
+    # Notes: time taken for data conversion is 9.34 secs
 
     id_list = list(dataset_dict.keys())
 
     r = random.Random(7)
 
-    for i in range(0,20):
-
+    for i in range(0, 20):
         s_no = r.choice(id_list)
         index = r.randint(0, 10)
         print('Id = ', s_no)
@@ -56,15 +57,14 @@ if __name__ == '__main__':
 
         # for i, _ in enumerate(student_answers):
         start = time.time()
-        student_answer = student_answers[index]
+        student_answer = student_answers[index].lower()
         print("Student answer: ", student_answer)
         print("Assigned score: ", scores[index])
         extract_features = FeatureExtractor(s_no, student_answer, dataset_dict)
-        extract_features.is_not_answered()
-        extract_features.get_incorrect_terms()
-        extract_features.is_wrong_answer()
+        # extract_features.get_irrelevant_terms()
+        # extract_features.is_wrong_answer()
         # Wrong answers work only when get_wrong_terms method is run, else returns None
-        extract_features.get_partial_answers()
+        # extract_features.get_partial_answers()
         extract_features.get_interchanged_terms()
         print("It took ", time.time() - start, " secs")
         print("----------------------------------------------------------")

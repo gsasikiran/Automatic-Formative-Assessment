@@ -7,6 +7,7 @@ go into any other classes.
 import pickle
 import re
 import string
+import time
 from typing import List
 
 import neuralcoref
@@ -21,6 +22,8 @@ from rake_nltk import Rake
 from scipy.spatial.distance import cosine
 from spacy.matcher import Matcher
 from nltk.corpus import wordnet
+from scipy.special import softmax
+from sklearn.metrics.pairwise import cosine_similarity
 
 from formative_assessment.utilities.preprocessing import PreProcess
 from formative_assessment.utilities.embed import AssignEmbedding
@@ -31,6 +34,60 @@ __license__ = ""
 __version__ = ""
 __last_modified__ = "18.01.2020"
 __status__ = "Development"
+
+
+def cosine_sim_matrix(tokens_1: List[str], tokens_2: List[str], embed_name: str = "elmo"):
+    """
+        Generate cosine similarity matrix for the given list of tokens
+    :param tokens_1: List[str]
+    :param tokens_2: List[str]
+    :param embed_name: str
+        The name of the embeddings to be assigned to compute cosine similarity
+    :return: np.array
+        Returns the cosine similarity matrix with the shape of (len(tokens_1), len(tokens_2))
+    """
+
+    # Taking most of the time around 8 seconds, instead consider it as a instance variable.
+    embed = AssignEmbedding(embed_name)
+
+    embeddings_1 = np.asarray(embed.assign(tokens_1))
+    embeddings_2 = np.asarray(embed.assign(tokens_2))
+
+    sim_matrix = cosine_similarity(embeddings_1, embeddings_2)
+
+    return np.round(sim_matrix, 3)
+
+
+def align_tokens(des_tokens: List[str], stu_tokens: List[str], align_threshold = 0.4):
+    """
+        Generate the tuple of most similar tokens of students answers in the desired answer
+
+    :param des_tokens: List[str]
+        List of desired answer's tokens
+    :param stu_tokens: List[str]
+        List of student answer's tokens
+    :param align_threshold: float
+        The threshold between 0 and 1 to generate
+
+    :return: dict
+        Keys: student tokens
+        Values: tuple(most similar desired answer token's index, the cosine similarity between the tokens)
+    """
+
+    # NOTE: we consider student tokens as rows and desired tokens as columns for ease of operation
+    cos_sim_matrix = cosine_sim_matrix(stu_tokens, des_tokens)
+
+    token_alignment = {}
+
+    for i, row in enumerate(cos_sim_matrix):
+        max_sim = max(row)
+        if max_sim > align_threshold:
+            index = np.argmax(row)  # generate the index of the maximum similarity
+            token_alignment[stu_tokens[i]] = (index, max_sim)
+        else:
+            continue
+
+    return token_alignment
 
 
 class Utilities(PreProcess):
@@ -59,11 +116,11 @@ class Utilities(PreProcess):
     @staticmethod
     def get_cosine_similarity(array_1, array_2):
         similarity = 1 - cosine(array_1, array_2)
-        return similarity
+        return round(similarity, 3)
 
     def cosine_similarity_matrix(self, array_1, array_2):
         """
-            Creates a matrix with similarity values from USE embeddings for each token in text_a to each word in text_b
+            Creates a matrix with similarity values from specified embeddings for each token in text_a to each word in text_b
         :param array_1: List[np.array]
 
         :param array_2: List[np.array]
@@ -72,21 +129,16 @@ class Utilities(PreProcess):
             Returns the matrix with similarity values
         """
 
-        matrix = np.zeros((len(array_1), len(array_2)))
-
-        for i in range(0, len(array_1)):
-            for j in range(0, len(array_2)):
-                matrix[i][j] = float(self.get_cosine_similarity(array_1[i], array_2[j]))
+        num = np.dot(array_1, array_2.T)
+        p1 = np.sqrt(np.sum(array_1 ** 2, axis=1))[:, np.newaxis]
+        p2 = np.sqrt(np.sum(array_2 ** 2, axis=1))[np.newaxis, :]
+        matrix = num / (p1 * p2)
+        # matrix = np.zeros((len(array_1), len(array_2)))
+        #
+        # for i in range(0, len(array_1)):
+        #     for j in range(0, len(array_2)):
+        #         matrix[i][j] = float(self.get_cosine_similarity(array_1[i], array_2[j]))
         return matrix
-
-    def assign_cos_sim_matrix(self, tokens_1, tokens_2):
-
-        embed = AssignEmbedding(embed_name="use")
-        embeddings_1 = embed.assign(tokens_1)
-        embeddings_2 = embed.assign(tokens_2)
-        sim_matrix = self.cosine_similarity_matrix(embeddings_1, embeddings_2)
-
-        return sim_matrix.T
 
     @staticmethod
     def get_frequency(desired_words, total_tokens):
@@ -209,25 +261,52 @@ class Utilities(PreProcess):
 
         return phrases
 
-    def extract_phrases_rake(self, text: str):
+    @staticmethod
+    def extract_phrases_rake(text: str):
 
         r = Rake()
         r.extract_keywords_from_text(text)
         return r.get_ranked_phrases()
 
     @staticmethod
-    def tokens_to_str(tokens: List[str]):
-        """
-            Convert the list of tokens to the string with spaces in the order of list
-        :param tokens: List[str]
-        :return: str
-        """
+    def softmax_ranked_phrases_rake(text: str):
 
-        token_str = ""
-        for token in tokens:
-            token_str += token + " "
+        r = Rake()
+        r.extract_keywords_from_text(text)
 
-        return token_str[:-1]
+        scores = r.get_ranked_phrases_with_scores()
+
+        phrases = []
+
+        score_dict = {}
+
+        if scores:
+            softmax_scores = np.zeros((1, len(scores)))
+
+            for i, tup in enumerate(scores):
+                softmax_scores[0][i] = tup[0]
+                phrases.append(tup[1])
+
+            softmax_scores = softmax(softmax_scores)
+
+            for i, phrase in enumerate(phrases):
+                score_dict[phrase] = softmax_scores[0][i]
+
+        return score_dict
+
+    # @staticmethod
+    # def tokens_to_str(tokens: List[str]):
+    #     """
+    #         Convert the list of tokens to the string with spaces in the order of list
+    #     :param tokens: List[str]
+    #     :return: str
+    #     """
+    #
+    #     token_str = ""
+    #     for token in tokens:
+    #         token_str += token + " "
+    #
+    #     return token_str[:-1]
 
     def is_passive_voice(self, sentence: str):
         """
@@ -250,22 +329,16 @@ class Utilities(PreProcess):
         else:
             return True
 
-    def remove_articles(self, text):
-        articles = ["a", "an", "the"]
-
-        doc = self.nlp(text)
-        updated = ""
-
-        for token in doc:
-            if token.text in string.punctuation:
-                updated += token.text
-                continue
-
-            if token.text.lower() not in articles:
-                updated += " " + token.text
-
-        # Return by removing the last space
-        return updated[1:]
+    @staticmethod
+    def remove_articles(text):
+        """
+            Remove the articles 'a', 'an' and 'the' from given text
+        :param text: str
+        :return: str
+            Text without any articles
+        """
+        pattern = re.compile(r"\\b(a|an|the)\\W")
+        return pattern.sub("", text.lower())
 
     def get_common_keyphrases(self, text1, text2):
 
@@ -306,7 +379,8 @@ class Utilities(PreProcess):
 
         return relations
 
-    def split_by_punct(self, text: str):
+    @staticmethod
+    def split_by_punct(text: str):
         """
             Split the sentence by punctuations
         :param text: str
@@ -363,33 +437,3 @@ class Utilities(PreProcess):
             return 1
         elif check in antonyms:
             return 0
-
-    def align_tokens(self, des_tokens: List[str], stu_tokens: List[str], align_threshold = 0.4):
-        """
-            Generate the tuple of most similar tokens of students answers in the desired answer
-
-        :param des_tokens: List[str]
-            List of desired answer's tokens
-        :param stu_tokens: List[str]
-            List of student answer's tokens
-        :param align_threshold: float
-            The threshold between 0 and 1 to generate
-
-        :return: dict
-            Keys: student tokens
-            Values: tuple(most similar desired answer token, the cosine similarity between the tokens)
-        """
-
-        cos_sim_matrix = self.assign_cos_sim_matrix(des_tokens, stu_tokens)
-
-        token_alignment = {}
-
-        for i, row in enumerate(cos_sim_matrix):
-            max_sim = max(row)
-            if max_sim > align_threshold:
-                index = np.argmax(row)  # generate the index of the maximum similarity
-                token_alignment[stu_tokens[i]] = (des_tokens[int(index)], max_sim)
-            else:
-                continue
-
-        return token_alignment

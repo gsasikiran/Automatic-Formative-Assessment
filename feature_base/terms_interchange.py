@@ -8,7 +8,7 @@ from formative_assessment.utilities.embed import AssignEmbedding
 class InterchangeOfTerms:
     def __init__(self):
         self.utils = Utilities()
-        self.embed = AssignEmbedding("use")
+        self.embed = AssignEmbedding("elmo")
 
     def get_question_terms(self, question: str):
         """
@@ -17,7 +17,7 @@ class InterchangeOfTerms:
         :return: List[str]
             Return the list of strings of key terms
         """
-        return self.utils.extract_phrases_tr(question)
+        return self.utils.extract_phrases_rake(question)
 
     def get_topics(self, question: str, des_ans: str):
         """

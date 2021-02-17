@@ -2,7 +2,7 @@ from typing import List
 
 import spacy
 
-from formative_assessment.utilities.utils import Utilities
+from formative_assessment.utilities.utils import Utilities, align_tokens
 
 
 class PartialTerms():
@@ -23,30 +23,31 @@ class PartialTerms():
         """
 
         des_ans = self.utils.corefer_resolution(des_ans)
-        des_sents = self.utils.split_by_punct(des_ans)
-        stu_sents = self.utils.split_by_punct(stu_ans)
+        stu_ans = self.utils.corefer_resolution(stu_ans)
+        # des_sents = self.utils.split_by_punct(des_ans)
+        # stu_sents = self.utils.split_by_punct(stu_ans)
 
         des_phrases = set()
         stu_phrases = set()
 
-        for sent in des_sents:
+        # for sent in des_sents:
+        des_demoted: str = self.utils.demote_ques(question, des_ans)
+        stu_demoted: str = self.utils.demote_ques(question, stu_ans)
 
-            des_demoted: str = self.utils.demote_ques(question, sent)
-            if des_demoted:
-                des_phrases.update(self.utils.extract_phrases_rake(des_demoted))
+        if des_demoted:
+            des_phrases_softmax: dict = self.utils.softmax_ranked_phrases_rake(des_demoted)
+            des_phrases.update(self.utils.extract_phrases_rake(des_demoted))
 
-        for sent in stu_sents:
-            stu_demoted: str = self.utils.demote_ques(question, sent)
-
-            if stu_demoted:
-                stu_phrases.update(self.utils.extract_phrases_rake(stu_demoted))
+        # for sent in stu_sents:
+        if stu_demoted:
+            stu_phrases.update(self.utils.extract_phrases_rake(stu_demoted))
 
         # Word alignment/Phrase alignment
         missed_phrases = set()
 
         if des_phrases:
             if stu_phrases:
-                aligned_words = self.utils.align_tokens(list(des_phrases), list(stu_phrases))
+                aligned_words = align_tokens(list(des_phrases), list(stu_phrases))
 
                 written_phrases = set()
                 for value in aligned_words.values():
@@ -57,7 +58,11 @@ class PartialTerms():
             else:
                 missed_phrases = des_phrases
 
-        return missed_phrases
+        missed_phrases_score = {}
+        for phrase in missed_phrases:
+            missed_phrases_score[phrase] = des_phrases_softmax[phrase]
+
+        return missed_phrases_score
 
     def get_noun_phrases(self, phrases: List[str]):
         """

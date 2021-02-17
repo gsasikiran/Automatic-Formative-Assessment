@@ -1,10 +1,12 @@
 """
 Abstraction of all the features that are to be extracted for the formative assessment.
 """
+import time
+
 import regex as re
 
 from feature_base.terms_interchange import InterchangeOfTerms
-from feature_base.wrong_term_identification import WrongTermIdentification
+from feature_base.wrong_term_identification import IrrelevantTermIdentification
 from feature_base.partial_terms import PartialTerms
 from formative_assessment.dataset_extractor import DataExtractor
 from formative_assessment.utilities.utils import Utilities
@@ -18,7 +20,7 @@ __status__ = "Development"
 
 
 class FeatureExtractor:
-    def __init__(self, question_id: float, stu_answer: str, dataset: dict, dir_path: str = "dataset/mohler/"):
+    def __init__(self, question_id: float, stu_answer: str, dataset: dict, dir_path: str = "dataset/nn_exam/cleaned/"):
 
         self.dataset_path = dir_path
         self.extract_data = DataExtractor(self.dataset_path)
@@ -32,53 +34,44 @@ class FeatureExtractor:
         self.utils = Utilities()
         self.words_score = {}
 
-    def get_incorrect_terms(self, sem_weight: float = 1, wrong_term_threshold: float = 0.35):
+    def get_irrelevant_terms(self, sem_weight: float = 1, term_threshold: float = 0.35):
         """
             Returns all the probable wrong terms of the student answer
 
+        :param term_threshold:
         :param sem_weight: float
             Between 0 and 1. Semantic weight we assign to the similarity feature. 1-sim_weight is assigned to the
             lexical feature. default: 0.8
-        :param wrong_term_threshold: float
+        :param term_threshold: float
             The threshold of which below that value, we consider the term as the wrong term
             default: 0.3
 
-        :return: Dict
-            Returns the dictionary with keys as wrong terms and the corresponding values are their scores
+        :return: Set
+            Returns the set of wrong terms
         """
-        wti = WrongTermIdentification(self.dataset_dict, DIR_PATH=self.dataset_path)
+        print("Extracting irrelevant terms")
+        iti = IrrelevantTermIdentification(self.dataset_dict, DIR_PATH=self.dataset_path)
 
-        print("Extracting wrong terms...")
+        pp_des_ans, pp_stu_ans = iti.preprocess(self.question_id, self.stu_ans)
+        sim_score = iti.get_sim_score(pp_des_ans, pp_stu_ans)
 
-        pp_des_ans, pp_stu_ans = wti.preprocess(self.question_id, self.stu_ans)
-        print("preprocessing complete")
-
-        print("Calculating similarity score")
-        sim_score = wti.get_sim_score(pp_des_ans, pp_stu_ans)
-        print(sim_score)
-
-        print("Calculating lexical score")
         lex_weight = 1 - sem_weight
-        lex_score = wti.get_lex_score(self.question_id, pp_stu_ans)
+        lex_score = iti.get_lex_score(self.question_id, pp_stu_ans)
 
         for token in pp_stu_ans:
             self.words_score[token] = (sem_weight * sim_score[token]) + (lex_weight * lex_score[token])
 
         print("Probable wrong terms or unwanted terms in the answer")
-        wrong_terms = {k for (k, v) in self.words_score.items() if v < wrong_term_threshold}
+        wrong_terms = {key for (key, value) in self.words_score.items() if value < term_threshold}
 
+        # We demote questions from extracted wrong terms
         wrong_terms_demoted = set()
         for term in wrong_terms:
             demoted_string = self.utils.demote_ques(self.question, term)
             if demoted_string:
                 wrong_terms_demoted.add(demoted_string)
 
-        if wrong_terms_demoted:
-            print(wrong_terms_demoted)
-            return wrong_terms_demoted
-        else:
-            print("Yay! There are no wrong terms!")
-            return None
+        return wrong_terms_demoted
 
     def is_wrong_answer(self, wrong_answer_threshold: float = -0.5, expected_similarity: float = 0.8):
         """
@@ -95,14 +88,8 @@ class FeatureExtractor:
             Returns true if the answer is totally or sub-optimally correct, else return false
         """
 
-        chunks_score = self.words_score
-
-        # Adding up the values of all the chunks
-        total = 0
-        for phrase in chunks_score:
-            total = total + chunks_score[phrase]
-
-        total = total / (len(chunks_score))  # Average of the answer score
+        # Average of the answer score
+        total = sum(self.words_score.values()) / (len(self.words_score))
 
         answer_score = (2 * total) - 1  # normalizing between -1 and 1 from 0 and 1
         print("Answer score: ", answer_score)
@@ -117,14 +104,17 @@ class FeatureExtractor:
         # We only extract noun existing phrases, as the phrases like "called explicitly", "whereas needs" will not
         # provide explicit understanding
 
-        missed_phrases = partial_answers.get_noun_phrases(missed_phrases)
+        # missed_phrases = partial_answers.get_noun_phrases(missed_phrases)
         print("Unanswered topics")
 
         if missed_phrases:
             print("The student didn't mention about: ")
-            print(missed_phrases)
+            print(missed_phrases.keys())
+
         else:
             print("You have written about all the topics")
+
+        return missed_phrases
 
     def get_interchanged_terms(self):
         """
@@ -152,4 +142,4 @@ class FeatureExtractor:
         for topic in stu_ans_rel:
             sents_num += sents_num + len(stu_ans_rel[topic])
 
-        return interchanged, missed_topics, sents_num
+        return interchanged, missed_topics, sents_num, len(des_ans_rel)
