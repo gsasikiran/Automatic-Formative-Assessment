@@ -8,8 +8,6 @@ import numpy as np
 from scipy.special import softmax
 
 from formative_assessment.dataset_extractor import DataExtractor
-from formative_assessment.utilities.embed import AssignEmbedding
-from formative_assessment.utilities.preprocessing import PreProcess
 from formative_assessment.utilities.utils import Utilities, cosine_sim_matrix, align_tokens
 
 __author__ = "Sasi Kiran Gaddipati"
@@ -20,7 +18,7 @@ __last_modified__ = "18.01.2020"
 __status__ = "Development"
 
 
-class WrongTermIdentification:
+class IrrelevantTermIdentification:
     def __init__(self, dataset: dict, DIR_PATH: str = ""):
 
         self.PATH = DIR_PATH
@@ -112,9 +110,9 @@ class WrongTermIdentification:
             index = np.where(sorted_row == max_sim)
 
             if len(index[0]) == 1:
-                rank = (int(index[0]) + 1) # changing zero index to one index
+                rank = (int(index[0]) + 1)  # changing zero index to one index
             else:
-                rank = (int(index[0][0]) + 1) # changing zero index to one index
+                rank = (int(index[0][0]) + 1)  # changing zero index to one index
 
             rank_dict[key] = rank
             sim_dict[key] = max_sim
@@ -145,7 +143,7 @@ class WrongTermIdentification:
 
         return score_sw
 
-    def _get_lex_count(self, id, student_tokens: List[str], positive=True):
+    def _get_lex_count(self, id, student_tokens: List[str] = [], positive=True):
         """
         Count the frequency of tokens in the total answers
 
@@ -157,7 +155,7 @@ class WrongTermIdentification:
             if true, returns number of student answers, the tokens have appeared
             if false, returns number of student answers, the tokens have not appeared
 
-        :return: dict
+        :return: counter
             Keys: (str) tokens
             Values: (int) count
         """
@@ -179,6 +177,8 @@ class WrongTermIdentification:
 
         return self.utils.get_frequency(student_tokens, tokenized_answers)
 
+        # return collections.Counter(tokenized_answers)
+
     def get_lex_score(self, id, stu_tokens):
         """
         Calculates the lexical scores. The formula is (number of occurrences of chunk/total number of answers for the given id)
@@ -193,7 +193,10 @@ class WrongTermIdentification:
             Values: (float) lexical score
         """
 
+        start = time.time()
         t_pw = self._get_lex_count(id, stu_tokens, True)
+        print("Time for lex count = ", time.time() - start)
+
         # t_nw = self._get_lex_count(id, stu_tokens, False)
 
         n_id = len(self.dataset_dict[id]["stu_answers"])
@@ -202,10 +205,10 @@ class WrongTermIdentification:
         score_lw = {}
         # TODO: Remove punctuations or alter considering negative examples
         for token in stu_tokens:
-            score = (t_pw[
-                         token] / n_id)  # * ((n_total + 1) - n_id) / (t_nw[token] + 1)  # Smoothing factor = 1; as t_nw can be 0
+            score = (t_pw[token] / n_id)  # * ((n_total + 1) - n_id) / (t_nw[token] + 1)  # Smoothing factor = 1; as t_nw can be 0
             # score_lw[token] = sqrt(score)
             score_lw[token] = score
+        print("score time: ", time.time()- start)
         return score_lw
 
     def get_softmax_sim(self, des_tokens, stu_tokens):

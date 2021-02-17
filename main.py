@@ -29,7 +29,7 @@ __last_modified__ = "08.02.2020"
 __status__ = "Development"
 
 if __name__ == '__main__':
-    PATH = "dataset/nn_exam/cleaned/"
+    PATH = "dataset/mohler/cleaned/"
 
     # Convert the data into  dictionary with ids, their corresponding questions, desired answers and student answers
 
@@ -61,10 +61,10 @@ if __name__ == '__main__':
         print("Student answer: ", student_answer)
         print("Assigned score: ", scores[index])
         extract_features = FeatureExtractor(s_no, student_answer, dataset_dict)
-        extract_features.get_irrelevant_terms()
-        extract_features.is_wrong_answer()
+        # extract_features.get_irrelevant_terms()
+        # extract_features.is_wrong_answer()
         # Wrong answers work only when get_wrong_terms method is run, else returns None
-        extract_features.get_partial_answers()
+        # extract_features.get_partial_answers()
         extract_features.get_interchanged_terms()
         print("It took ", time.time() - start, " secs")
         print("----------------------------------------------------------")

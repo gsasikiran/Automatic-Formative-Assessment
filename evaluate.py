@@ -87,7 +87,7 @@ class AEGrading:
         self.score = self.score - (total * self.score / 2)
 
     def wrong_terms_score(self):
-        self.feedback["incorrect_terms"] = self.fe.get_incorrect_terms()
+        self.feedback["incorrect_terms"] = self.fe.get_irrelevant_terms()
         return self.score, self.feedback
 
 

@@ -3,6 +3,7 @@ import numpy as np
 import gensim
 import tensorflow_hub as hub
 from bert_embedding import BertEmbedding
+from allennlp.modules.elmo import Elmo, batch_to_ids
 from formative_assessment.utilities.preprocessing import PreProcess
 from formative_assessment.negated_term_vector import FlipNegatedTermVector
 
@@ -16,8 +17,10 @@ class Embedding:
             self._embed = hub.load(self.url)
 
         elif name == "elmo":
-            self.url = "https://tfhub.dev/google/elmo/3"
-            self._embed = hub.load(self.url)
+
+            self.options_file = "https://allennlp.s3.amazonaws.com/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
+            self.weight_file = "https://allennlp.s3.amazonaws.com/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
+            self._embed = Elmo(self.options_file, self.weight_file, 3, dropout=0)
 
         elif name == "fasttext":
             self._ft_embed = gensim.models.FastText.load('/home/sgaddi2s/master_thesis/weights/combined/fasttext'
@@ -44,19 +47,27 @@ class Embedding:
 
         return embed_array
 
-    def elmo(self, phrases: List[str]):
+    def elmo(self, phrases: List[str], embed_dim = 1024):
         """
 
         :param phrases:
+        :param embed_dim:
         :return:
         """
-        embeddings = self._embed(phrases)
 
-        embed_array = []
-        for i in range(len(embeddings)):
-            embed_array.append(embeddings[i].numpy())
+        phrases_embed = np.zeros((len(phrases), embed_dim))
 
-        return embed_array
+        for i, phrase in enumerate(phrases):
+            tokens = self.preprocess.tokenize(phrase.lower())
+            # We put phrases into [],as elmo considers list inside the list as sentences
+            character_ids = batch_to_ids(([tokens]))
+            # embeddings are tensors of size [3, 1, len(phrases), 1024].
+            # Here 3 refers to number of LSTM layers. 1 refers to number of sentences. 1024 is embedding dimension
+            embeddings = self._embed(character_ids)["elmo_representations"][-1].detach().numpy()[0]
+
+            phrases_embed[i] = self._mowe(embeddings)
+
+        return phrases_embed
 
     def fasttext(self, phrases: List[str], embed_dim=300):
         """

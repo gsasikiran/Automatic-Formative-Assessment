@@ -36,7 +36,7 @@ __last_modified__ = "18.01.2020"
 __status__ = "Development"
 
 
-def cosine_sim_matrix(tokens_1: List[str], tokens_2: List[str], embed_name: str = "use"):
+def cosine_sim_matrix(tokens_1: List[str], tokens_2: List[str], embed_name: str = "elmo"):
     """
         Generate cosine similarity matrix for the given list of tokens
     :param tokens_1: List[str]
@@ -58,7 +58,7 @@ def cosine_sim_matrix(tokens_1: List[str], tokens_2: List[str], embed_name: str 
     return np.round(sim_matrix, 3)
 
 
-def align_tokens(des_tokens: List[str], stu_tokens: List[str], align_threshold):
+def align_tokens(des_tokens: List[str], stu_tokens: List[str], align_threshold = 0.4):
     """
         Generate the tuple of most similar tokens of students answers in the desired answer
 
@@ -120,7 +120,7 @@ class Utilities(PreProcess):
 
     def cosine_similarity_matrix(self, array_1, array_2):
         """
-            Creates a matrix with similarity values from USE embeddings for each token in text_a to each word in text_b
+            Creates a matrix with similarity values from specified embeddings for each token in text_a to each word in text_b
         :param array_1: List[np.array]
 
         :param array_2: List[np.array]
@@ -294,19 +294,19 @@ class Utilities(PreProcess):
 
         return score_dict
 
-    @staticmethod
-    def tokens_to_str(tokens: List[str]):
-        """
-            Convert the list of tokens to the string with spaces in the order of list
-        :param tokens: List[str]
-        :return: str
-        """
-
-        token_str = ""
-        for token in tokens:
-            token_str += token + " "
-
-        return token_str[:-1]
+    # @staticmethod
+    # def tokens_to_str(tokens: List[str]):
+    #     """
+    #         Convert the list of tokens to the string with spaces in the order of list
+    #     :param tokens: List[str]
+    #     :return: str
+    #     """
+    #
+    #     token_str = ""
+    #     for token in tokens:
+    #         token_str += token + " "
+    #
+    #     return token_str[:-1]
 
     def is_passive_voice(self, sentence: str):
         """
