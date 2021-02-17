@@ -49,7 +49,7 @@ class PartialTerms():
 
         if des_phrases:
             if stu_phrases:
-                aligned_words = self.utils.align_tokens(list(des_phrases), list(stu_phrases))
+                aligned_words = align_tokens(list(des_phrases), list(stu_phrases))
 
                 written_phrases = set()
                 for value in aligned_words.values():

@@ -96,7 +96,7 @@ class DataExtractor:
         """
 
         if stu_ans_id is not None:
-            stu_ans_list = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score_avg"])
+            stu_ans_list = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score"])
             return stu_ans_list
 
         return self.stu_ans_df.score_avg.to_list()

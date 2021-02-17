@@ -78,7 +78,6 @@ class AEGrading:
         # terms_score = self._softmax_ranked_phrases_rake(dataset_dict[self.qid]["des_answer"])
 
         missed_terms = self.fe.get_partial_answers()
-        print(missed_terms)
         self.feedback["missed_terms"] = missed_terms.keys()
 
         total = 0
@@ -93,7 +92,7 @@ class AEGrading:
 
 
 if __name__ == '__main__':
-    PATH = "dataset/mohler/"
+    PATH = "dataset/nn_exam/cleaned/"
 
     # Convert the data into  dictionary with ids, their corresponding questions, desired answers and student answers
     convert_data = ConvertDataType(PATH)
@@ -101,20 +100,17 @@ if __name__ == '__main__':
 
     id_list = list(dataset_dict.keys())
 
-    r = random.Random(333)
+    r = random.Random(5)
     data = []
 
-    for i in range(0, 360):
+    for i in range(0, 10):
 
         s_no = r.choice(id_list)
-        index = r.randint(0, 10)
-        print('Id = ', s_no)
+        index = r.randint(0, 12)
 
         question = dataset_dict[s_no]["question"]
-        print("Question: ", question)
-
         desired_answer = dataset_dict[s_no]["des_answer"]
-        print("Desired answer: ", desired_answer)
+
         # temporary student answer
         student_answers = dataset_dict[s_no]["stu_answers"]
         scores = dataset_dict[s_no]["scores"]
@@ -123,7 +119,8 @@ if __name__ == '__main__':
         start = time.time()
         student_answer = student_answers[index]
 
-        aeg = AEGrading(s_no, student_answer, dataset_dict)
+        print(s_no, student_answer)
+        aeg = AEGrading(s_no, student_answer, dataset_dict, max_score=2)
         not_answered = aeg.is_not_answered()
 
         if not not_answered:
@@ -137,7 +134,7 @@ if __name__ == '__main__':
         aeg.feedback["assigned_score"] = scores[index]
         aeg.feedback["our_score"] = aeg.score
         data.append(aeg.feedback)
-
+        print(aeg.feedback)
         print("It took ", time.time() - start, " secs")
         print("----------------------------------------------------------")
 

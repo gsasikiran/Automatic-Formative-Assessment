@@ -6,22 +6,27 @@ from bert_embedding import BertEmbedding
 from formative_assessment.utilities.preprocessing import PreProcess
 from formative_assessment.negated_term_vector import FlipNegatedTermVector
 
+
 class Embedding:
+
     def __init__(self, name: str):
         self.name = name
         if name == "use":
             self.url = "https://tfhub.dev/google/universal-sentence-encoder/4"
             self._embed = hub.load(self.url)
+
         elif name == "elmo":
             self.url = "https://tfhub.dev/google/elmo/3"
             self._embed = hub.load(self.url)
+
         elif name == "fasttext":
             self._ft_embed = gensim.models.FastText.load('/home/sgaddi2s/master_thesis/weights/combined/fasttext'
                                                          '/ft').wv
+        elif name == "bert":
+            self._bert_embed = BertEmbedding()
+
         else:
             LookupError("We are not currently offering such embeddings called \'", name, "\'")
-
-        self._bert_embed = BertEmbedding()
 
         self.preprocess = PreProcess()
 
@@ -69,14 +74,14 @@ class Embedding:
             tokens = self.preprocess.tokenize(phrase.lower())
             embeddings = np.zeros((len(tokens), embed_dim))
 
-            negation_indices =[]
+            negation_indices = []
             for j, token in enumerate(tokens):
                 if fntv.is_negation(token):
                     negation_indices.append(j)
                     continue
                 elif token in negated_terms:
                     embeddings[j] = (-1) * self._ft_embed[token]
-                    negated_terms.remove(token) # We remove to assign negative vector only once.
+                    negated_terms.remove(token)  # We remove to assign negative vector only once.
                 else:
                     embeddings[j] = self._ft_embed[token]
 

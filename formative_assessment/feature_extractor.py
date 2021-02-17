@@ -1,6 +1,8 @@
 """
 Abstraction of all the features that are to be extracted for the formative assessment.
 """
+import time
+
 import regex as re
 
 from feature_base.terms_interchange import InterchangeOfTerms
@@ -18,7 +20,7 @@ __status__ = "Development"
 
 
 class FeatureExtractor:
-    def __init__(self, question_id: float, stu_answer: str, dataset: dict, dir_path: str = "dataset/mohler/"):
+    def __init__(self, question_id: float, stu_answer: str, dataset: dict, dir_path: str = "dataset/nn_exam/cleaned/"):
 
         self.dataset_path = dir_path
         self.extract_data = DataExtractor(self.dataset_path)
@@ -32,7 +34,7 @@ class FeatureExtractor:
         self.utils = Utilities()
         self.words_score = {}
 
-    def get_incorrect_terms(self, sem_weight: float = 1, wrong_term_threshold: float = 0.35):
+    def get_irrelevant_terms(self, sem_weight: float = 1, wrong_term_threshold: float = 0.35):
         """
             Returns all the probable wrong terms of the student answer
 
@@ -46,23 +48,27 @@ class FeatureExtractor:
         :return: Dict
             Returns the dictionary with keys as wrong terms and the corresponding values are their scores
         """
+        start = time.time()
         wti = WrongTermIdentification(self.dataset_dict, DIR_PATH=self.dataset_path)
+        print("class instantiation time: ", time.time() - start)
 
         print("Extracting wrong terms...")
-
         pp_des_ans, pp_stu_ans = wti.preprocess(self.question_id, self.stu_ans)
-        print("preprocessing complete")
+        print("Preprocessing time: ", time.time() - start)
+        # print("preprocessing complete")
 
         print("Calculating similarity score")
         sim_score = wti.get_sim_score(pp_des_ans, pp_stu_ans)
-        print(sim_score)
+        print("similarity score time: ", time.time() - start)
 
         print("Calculating lexical score")
         lex_weight = 1 - sem_weight
         lex_score = wti.get_lex_score(self.question_id, pp_stu_ans)
+        print("lexical score time: ", time.time() - start)
 
         for token in pp_stu_ans:
             self.words_score[token] = (sem_weight * sim_score[token]) + (lex_weight * lex_score[token])
+        print("total score time: ", time.time() - start)
 
         print("Probable wrong terms or unwanted terms in the answer")
         wrong_terms = {k for (k, v) in self.words_score.items() if v < wrong_term_threshold}
@@ -72,7 +78,7 @@ class FeatureExtractor:
             demoted_string = self.utils.demote_ques(self.question, term)
             if demoted_string:
                 wrong_terms_demoted.add(demoted_string)
-
+        print("question demotion time: ", time.time() - start)
         if wrong_terms_demoted:
             print(wrong_terms_demoted)
             return wrong_terms_demoted
