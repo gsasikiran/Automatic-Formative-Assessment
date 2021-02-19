@@ -7,8 +7,8 @@ from formative_assessment.utilities.embed import AssignEmbedding
 
 class InterchangeOfTerms:
     def __init__(self):
-        self.utils = Utilities()
-        self.embed = AssignEmbedding("elmo")
+        self.utils = Utilities.instance()
+        self.embed = AssignEmbedding("use")
 
     def get_question_terms(self, question: str):
         """
@@ -39,14 +39,12 @@ class InterchangeOfTerms:
         des_ans = resolved_str[ques_len + 1:]
 
         # Text rank key phrase extraction
-        question_kp = self.utils.extract_phrases_tr(resolved_ques)
+        # question_kp = self.utils.extract_phrases_tr(resolved_ques)
+        question_kp = self.utils.extract_phrases_rake(resolved_ques)
 
         # Generate the common key phrases between the question and desired answer
         common_kp = self.utils.get_common_keyphrases(question, des_ans)
 
-        # TODO: We can extract phrases such that if the text rank phrases are in the flair phrases.
-        # TODO: Also if the returned set do not have the first text rank key phrase of the question, add that to the set.
-        # TODO: Try to extract key phrases by considering the text rank key phrases weightage.
         # TODO: Consider extracting the heads from student answers, if the desired answer did not result in any of the common words
 
         # Return the first extracted key word of the question, if no common words are extracted
@@ -80,14 +78,14 @@ class InterchangeOfTerms:
                     if re.match("V: ", str):
                         verb = re.sub("V: ", '', str)
                         lemmas = self.utils.lemmatize(verb)
-                        verb = self.utils.tokens_to_str(lemmas)
+                        verb = " ".join(lemmas)
                         sent = sent + " " + verb
                         continue
 
                     elif re.match("ARG(\d|M(-TMP|-LOC|-NEG))", str):
                         text = re.sub("ARG(\d|M(-TMP|-LOC|-NEG)): ", '', str)
                         lemmas = self.utils.lemmatize(text)
-                        arg = self.utils.tokens_to_str(lemmas)
+                        arg = " ".join(lemmas)
                         if topic in arg:
                             head = topic
                             continue

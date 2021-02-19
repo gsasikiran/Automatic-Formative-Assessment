@@ -1,12 +1,12 @@
 from typing import List
 import numpy as np
 import gensim
+import tensorflow as tf
 import tensorflow_hub as hub
 from bert_embedding import BertEmbedding
 from allennlp.modules.elmo import Elmo, batch_to_ids
 from formative_assessment.utilities.preprocessing import PreProcess
 from formative_assessment.negated_term_vector import FlipNegatedTermVector
-
 
 class Embedding:
 

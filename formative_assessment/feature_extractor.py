@@ -31,7 +31,7 @@ class FeatureExtractor:
         self.des_ans = self.dataset_dict[question_id]["des_answer"]
         self.stu_ans = stu_answer
 
-        self.utils = Utilities()
+        self.utils = Utilities.instance()
         self.words_score = {}
 
     def get_irrelevant_terms(self, sem_weight: float = 1, term_threshold: float = 0.35):
@@ -127,19 +127,27 @@ class FeatureExtractor:
             The missed topics asked in question and written in desired answer but not presented in the student answer
 
         """
+        start = time.time()
         iot = InterchangeOfTerms()
+        print("Instantiation time: ", time.time() - start)
 
         topics = iot.get_topics(self.question, self.des_ans)
+        print("Assigning topics: ", time.time() - start)
         # TODO: if the heads are null, then we assign the best key-phrase as the head and corresponding verbs as the
         #  tree
         des_ans_rel = iot.generate_tree(topics, self.des_ans)
+        print("Des answer tree: ", time.time() - start)
         stu_ans = self.utils.corefer_resolution(self.stu_ans)
         stu_ans_rel = iot.generate_tree(topics, stu_ans)
+        print("Student answer tree: ", time.time() - start)
 
         interchanged, missed_topics = iot.is_interchanged(des_ans_rel, stu_ans_rel)
-
+        print("check interchaged ", time.time() - start)
         sents_num = 0
         for topic in stu_ans_rel:
             sents_num += sents_num + len(stu_ans_rel[topic])
 
-        return interchanged, missed_topics, sents_num, len(des_ans_rel)
+        iot = {"interchanged": interchanged, "missed_topics": missed_topics, "total_sents_num": sents_num,
+               "total_topics": len(des_ans_rel)}
+
+        return iot

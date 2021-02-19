@@ -10,15 +10,15 @@ class PreProcess:
     def __init__(self):
         self.nlp = spacy.load("en_core_web_lg")
 
-    @staticmethod
-    def normalize_case(text: str):
-        """
-            Normalizes the text to the lower case
-        :param text: string
-        :return: string
-            Returns the string in the lower case
-        """
-        return text.lower()
+    # @staticmethod
+    # def normalize_case(text: str):
+    #     """
+    #         Normalizes the text to the lower case
+    #     :param text: string
+    #     :return: string
+    #         Returns the string in the lower case
+    #     """
+    #     return text.lower()
 
     def lemmatize(self, text: str):
         """
