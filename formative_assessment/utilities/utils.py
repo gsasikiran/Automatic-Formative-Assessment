@@ -25,6 +25,7 @@ from nltk.corpus import wordnet
 from scipy.special import softmax
 from sklearn.metrics.pairwise import cosine_similarity
 
+from formative_assessment.pattern import Singleton
 from formative_assessment.utilities.preprocessing import PreProcess
 from formative_assessment.utilities.embed import AssignEmbedding
 
@@ -36,7 +37,7 @@ __last_modified__ = "18.01.2020"
 __status__ = "Development"
 
 
-def cosine_sim_matrix(tokens_1: List[str], tokens_2: List[str], embed_name: str = "elmo"):
+def cosine_sim_matrix(tokens_1: List[str], tokens_2: List[str], embed_name: str = "use"):
     """
         Generate cosine similarity matrix for the given list of tokens
     :param tokens_1: List[str]
@@ -58,7 +59,7 @@ def cosine_sim_matrix(tokens_1: List[str], tokens_2: List[str], embed_name: str 
     return np.round(sim_matrix, 3)
 
 
-def align_tokens(des_tokens: List[str], stu_tokens: List[str], align_threshold = 0.4):
+def align_tokens(des_tokens: List[str], stu_tokens: List[str], align_threshold=0.4):
     """
         Generate the tuple of most similar tokens of students answers in the desired answer
 
@@ -89,7 +90,7 @@ def align_tokens(des_tokens: List[str], stu_tokens: List[str], align_threshold =
 
     return token_alignment
 
-
+@Singleton
 class Utilities(PreProcess):
     def __init__(self):
         super().__init__()
@@ -102,43 +103,43 @@ class Utilities(PreProcess):
 
         self.chunk_tagger = SequenceTagger.load('chunk')
 
-    @staticmethod
-    def _get_embed_list(tokens):
-        with open("dataset/embeddings/phrases_use_stu_answers.pickle", "rb") as handle:
-            phrases_embed = pickle.load(handle)
-
-        embed_list = []
-        for chunk in tokens:
-            embed_list.append(phrases_embed[chunk])
-
-        return embed_list
+    # @staticmethod
+    # def _get_embed_list(tokens):
+    #     with open("dataset/embeddings/phrases_use_stu_answers.pickle", "rb") as handle:
+    #         phrases_embed = pickle.load(handle)
+    #
+    #     embed_list = []
+    #     for chunk in tokens:
+    #         embed_list.append(phrases_embed[chunk])
+    #
+    #     return embed_list
 
     @staticmethod
     def get_cosine_similarity(array_1, array_2):
         similarity = 1 - cosine(array_1, array_2)
         return round(similarity, 3)
 
-    def cosine_similarity_matrix(self, array_1, array_2):
-        """
-            Creates a matrix with similarity values from specified embeddings for each token in text_a to each word in text_b
-        :param array_1: List[np.array]
-
-        :param array_2: List[np.array]
-
-        :return: np array
-            Returns the matrix with similarity values
-        """
-
-        num = np.dot(array_1, array_2.T)
-        p1 = np.sqrt(np.sum(array_1 ** 2, axis=1))[:, np.newaxis]
-        p2 = np.sqrt(np.sum(array_2 ** 2, axis=1))[np.newaxis, :]
-        matrix = num / (p1 * p2)
-        # matrix = np.zeros((len(array_1), len(array_2)))
-        #
-        # for i in range(0, len(array_1)):
-        #     for j in range(0, len(array_2)):
-        #         matrix[i][j] = float(self.get_cosine_similarity(array_1[i], array_2[j]))
-        return matrix
+    # def cosine_similarity_matrix(self, array_1, array_2):
+    #     """
+    #         Creates a matrix with similarity values from specified embeddings for each token in text_a to each word in text_b
+    #     :param array_1: List[np.array]
+    #
+    #     :param array_2: List[np.array]
+    #
+    #     :return: np array
+    #         Returns the matrix with similarity values
+    #     """
+    #
+    #     num = np.dot(array_1, array_2.T)
+    #     p1 = np.sqrt(np.sum(array_1 ** 2, axis=1))[:, np.newaxis]
+    #     p2 = np.sqrt(np.sum(array_2 ** 2, axis=1))[np.newaxis, :]
+    #     matrix = num / (p1 * p2)
+    #     # matrix = np.zeros((len(array_1), len(array_2)))
+    #     #
+    #     # for i in range(0, len(array_1)):
+    #     #     for j in range(0, len(array_2)):
+    #     #         matrix[i][j] = float(self.get_cosine_similarity(array_1[i], array_2[j]))
+    #     return matrix
 
     @staticmethod
     def get_frequency(desired_words, total_tokens):
@@ -174,92 +175,92 @@ class Utilities(PreProcess):
         doc = self.nlp(text.lower())
         return doc._.coref_resolved
 
-    def extract_phrases(self, text: str):
-        """
-            Extracts the phrases of the text extracted from Flair package
-        :param text: string
-        :return: List[str]
-            Returns the extracted list of phrases from the input text
-        """
+    # def extract_phrases(self, text: str):
+    #     """
+    #         Extracts the phrases of the text extracted from Flair package
+    #     :param text: string
+    #     :return: List[str]
+    #         Returns the extracted list of phrases from the input text
+    #     """
+    #
+    #     sentence = Sentence(text)
+    #     self.chunk_tagger.predict(sentence)
+    #
+    #     token_list: List[str] = []
+    #     token_tags: List[str] = []
+    #
+    #     for token in sentence:
+    #         token_list.append(token.text)
+    #
+    #         for label_type in token.annotation_layers.keys():
+    #             # if token.get_labels(label_type)[0].value == "O":
+    #             #     token_tags.append('O')
+    #             # if token.get_labels(label_type)[0].value == "_":
+    #             #     token_tags.append('_')
+    #             token_tags.append(token.get_labels(label_type)[0].value)  # Append token tags for each token
+    #
+    #     phrases: List[str] = self._get_flair_phrases(token_list, token_tags)
+    #
+    #     return phrases
+    #
+    # @staticmethod
+    # def _get_flair_phrases(token_list: List[str], token_tags: List[str]):
+    #     """
+    #         Generate the phrases from the extracted tokens and their corresponding tags, by merging the relevant tokens
+    #     :param token_list: List[str]
+    #         List of strings of tokens
+    #     :param token_tags: List[str]
+    #         List of tags in order with tokens, extracted by Flair package
+    #     :return: List[str]
+    #         Returns the list of phrases merging the relevant tokens
+    #     """
+    #
+    #     assert len(token_tags) == len(token_list)
+    #
+    #     phrases = []
+    #     phrase = ''
+    #
+    #     # Creating the list of outside phrases and '_' phrases
+    #     for token, tag in zip(token_list, token_tags):
+    #         if token in string.punctuation:
+    #             continue
+    #
+    #         if '-' not in tag:  # '-' do not occur for the single token tags.
+    #             phrases.append(token)
+    #
+    #         else:
+    #             state, phrase_pos = tag.split('-')
+    #             if state == 'B':
+    #                 phrase = ''
+    #                 phrase += token
+    #             elif state == 'I':
+    #                 phrase += ' ' + token
+    #             elif state == 'E':
+    #                 phrase += ' ' + token
+    #                 phrases.append(phrase)
+    #             elif state == 'S':
+    #                 phrases.append(token)
+    #
+    #     return phrases
 
-        sentence = Sentence(text)
-        self.chunk_tagger.predict(sentence)
-
-        token_list: List[str] = []
-        token_tags: List[str] = []
-
-        for token in sentence:
-            token_list.append(token.text)
-
-            for label_type in token.annotation_layers.keys():
-                # if token.get_labels(label_type)[0].value == "O":
-                #     token_tags.append('O')
-                # if token.get_labels(label_type)[0].value == "_":
-                #     token_tags.append('_')
-                token_tags.append(token.get_labels(label_type)[0].value)  # Append token tags for each token
-
-        phrases: List[str] = self._get_flair_phrases(token_list, token_tags)
-
-        return phrases
-
-    @staticmethod
-    def _get_flair_phrases(token_list: List[str], token_tags: List[str]):
-        """
-            Generate the phrases from the extracted tokens and their corresponding tags, by merging the relevant tokens
-        :param token_list: List[str]
-            List of strings of tokens
-        :param token_tags: List[str]
-            List of tags in order with tokens, extracted by Flair package
-        :return: List[str]
-            Returns the list of phrases merging the relevant tokens
-        """
-
-        assert len(token_tags) == len(token_list)
-
-        phrases = []
-        phrase = ''
-
-        # Creating the list of outside phrases and '_' phrases
-        for token, tag in zip(token_list, token_tags):
-            if token in string.punctuation:
-                continue
-
-            if '-' not in tag:  # '-' do not occur for the single token tags.
-                phrases.append(token)
-
-            else:
-                state, phrase_pos = tag.split('-')
-                if state == 'B':
-                    phrase = ''
-                    phrase += token
-                elif state == 'I':
-                    phrase += ' ' + token
-                elif state == 'E':
-                    phrase += ' ' + token
-                    phrases.append(phrase)
-                elif state == 'S':
-                    phrases.append(token)
-
-        return phrases
-
-    def extract_phrases_tr(self, text: str):
-        """
-            Returns only noun key phrases
-            Source: https://spacy.io/universe/project/spacy-pytextrank
-
-        :param text: The text in which the key phrases should be extracted
-        :return: List[str]
-            Returns list of strings of key phrases in the text
-        """
-
-        doc = self.nlp(text)
-
-        phrases = []
-
-        for p in doc._.phrases:
-            phrases.append(p.text)
-
-        return phrases
+    # def extract_phrases_tr(self, text: str):
+    #     """
+    #         Returns only noun key phrases
+    #         Source: https://spacy.io/universe/project/spacy-pytextrank
+    #
+    #     :param text: The text in which the key phrases should be extracted
+    #     :return: List[str]
+    #         Returns list of strings of key phrases in the text
+    #     """
+    #
+    #     doc = self.nlp(text)
+    #
+    #     phrases = []
+    #
+    #     for p in doc._.phrases:
+    #         phrases.append(p.text)
+    #
+    #     return phrases
 
     @staticmethod
     def extract_phrases_rake(text: str):
@@ -308,26 +309,26 @@ class Utilities(PreProcess):
     #
     #     return token_str[:-1]
 
-    def is_passive_voice(self, sentence: str):
-        """
-            Checks if the given sentence has passive voice instances
-            # Source: https://gist.github.com/armsp/30c2c1e19a0f1660944303cf079f831a
-        :param sentence: str
-        :return:  True if the sentence has atleast one passive voice instance
-            else False
-        """
-
-        matcher = Matcher(self.nlp.vocab)
-        doc = self.nlp(sentence)
-
-        passive_rule = [{'DEP': 'nsubjpass', 'OP': '*'}, {'DEP': 'aux', 'OP': '*'}, {'DEP': 'auxpass'}, {'TAG': 'VBN'}]
-        matcher.add('Passive', None, passive_rule)
-        matches = matcher(doc)
-
-        if len(matches) == 0:
-            return False
-        else:
-            return True
+    # def is_passive_voice(self, sentence: str):
+    #     """
+    #         Checks if the given sentence has passive voice instances
+    #         # Source: https://gist.github.com/armsp/30c2c1e19a0f1660944303cf079f831a
+    #     :param sentence: str
+    #     :return:  True if the sentence has atleast one passive voice instance
+    #         else False
+    #     """
+    #
+    #     matcher = Matcher(self.nlp.vocab)
+    #     doc = self.nlp(sentence)
+    #
+    #     passive_rule = [{'DEP': 'nsubjpass', 'OP': '*'}, {'DEP': 'aux', 'OP': '*'}, {'DEP': 'auxpass'}, {'TAG': 'VBN'}]
+    #     matcher.add('Passive', None, passive_rule)
+    #     matches = matcher(doc)
+    #
+    #     if len(matches) == 0:
+    #         return False
+    #     else:
+    #         return True
 
     @staticmethod
     def remove_articles(text):
@@ -342,8 +343,10 @@ class Utilities(PreProcess):
 
     def get_common_keyphrases(self, text1, text2):
 
-        text1_kp = set(self.extract_phrases_tr(text1))
-        text2_kp = set(self.extract_phrases_tr(text2))
+        # text1_kp = set(self.extract_phrases_tr(text1))
+        # text2_kp = set(self.extract_phrases_tr(text2))
+        text1_kp = set(self.extract_phrases_rake(text1))
+        text2_kp = set(self.extract_phrases_rake(text2))
 
         text1_updated = set()
         text2_updated = set()
@@ -351,13 +354,13 @@ class Utilities(PreProcess):
         for text in text1_kp:
             filtered_text = self.remove_articles(text)
             lemmas = self.lemmatize(filtered_text)
-            filtered_text = self.tokens_to_str(lemmas)
+            filtered_text = " ".join(lemmas)
             text1_updated.add(filtered_text)
 
         for text in text2_kp:
             filtered_text = self.remove_articles(text)
             lemmas = self.lemmatize(filtered_text)
-            filtered_text = self.tokens_to_str(lemmas)
+            filtered_text = " ".join(lemmas)
             text2_updated.add(filtered_text)
 
         return text1_updated.intersection(text2_updated)
@@ -391,49 +394,49 @@ class Utilities(PreProcess):
 
         return re.split("[?.,:;]/* ", text)
 
-    @staticmethod
-    def wordnet_syn(word_1: str):
-
-        word_syn = wordnet.synsets(word_1)
-
-        synonyms = set()
-
-        for syn in word_syn:
-            for lemma in syn.lemmas():
-                synonyms.add(lemma.name().lower())
-
-        return synonyms
-
-    @staticmethod
-    def wordnet_antonym(word_1: str):
-
-        word_syn = wordnet.synsets(word_1)
-
-        antonyms = set()
-
-        for syn in word_syn:
-            for lemma in syn.lemmas():
-                if lemma.antonyms():
-                    for ant in lemma.antonyms():
-                        antonyms.add(ant.name().lower())
-
-        return antonyms
-
-    def word_similarity(self, word1: str, word2: str):
-        first = self.nlp(word1)
-        second = self.nlp(word2)
-
-        return first.similarity(second)
-
-    def get_wordnet_sim(self, word_1: str, word_2: str):
-
-        lemmatizer = WordNetLemmatizer()
-        check = lemmatizer.lemmatize(word_2)
-
-        synonyms = self.wordnet_syn(word_1)
-        antonyms = self.wordnet_antonym(word_1)
-
-        if check in synonyms:
-            return 1
-        elif check in antonyms:
-            return 0
+    # @staticmethod
+    # def wordnet_syn(word_1: str):
+    #
+    #     word_syn = wordnet.synsets(word_1)
+    #
+    #     synonyms = set()
+    #
+    #     for syn in word_syn:
+    #         for lemma in syn.lemmas():
+    #             synonyms.add(lemma.name().lower())
+    #
+    #     return synonyms
+    #
+    # @staticmethod
+    # def wordnet_antonym(word_1: str):
+    #
+    #     word_syn = wordnet.synsets(word_1)
+    #
+    #     antonyms = set()
+    #
+    #     for syn in word_syn:
+    #         for lemma in syn.lemmas():
+    #             if lemma.antonyms():
+    #                 for ant in lemma.antonyms():
+    #                     antonyms.add(ant.name().lower())
+    #
+    #     return antonyms
+    #
+    # def word_similarity(self, word1: str, word2: str):
+    #     first = self.nlp(word1)
+    #     second = self.nlp(word2)
+    #
+    #     return first.similarity(second)
+    #
+    # def get_wordnet_sim(self, word_1: str, word_2: str):
+    #
+    #     lemmatizer = WordNetLemmatizer()
+    #     check = lemmatizer.lemmatize(word_2)
+    #
+    #     synonyms = self.wordnet_syn(word_1)
+    #     antonyms = self.wordnet_antonym(word_1)
+    #
+    #     if check in synonyms:
+    #         return 1
+    #     elif check in antonyms:
+    #         return 0

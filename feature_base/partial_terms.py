@@ -8,7 +8,7 @@ from formative_assessment.utilities.utils import Utilities, align_tokens
 class PartialTerms():
 
     def __init__(self):
-        self.utils = Utilities()
+        self.utils = Utilities.instance()
         self.nlp = spacy.load('en_core_web_lg')
 
     def get_missed_phrases(self, question, des_ans, stu_ans):

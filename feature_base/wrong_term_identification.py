@@ -25,7 +25,7 @@ class IrrelevantTermIdentification:
         self.extract_data = DataExtractor(DIR_PATH)
         self.dataset_dict = dataset
 
-        self.utils = Utilities()
+        self.utils = Utilities.instance()
 
         self.cos_sim_matrix = np.array([])
 

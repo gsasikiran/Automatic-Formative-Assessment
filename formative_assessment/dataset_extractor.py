@@ -21,9 +21,9 @@ class DataExtractor:
 
         self.PATH = PATH
         self.ques_df = pd.read_csv(PATH + "questions.csv", error_bad_lines=False, delimiter="\t")
-        self.stu_ans_df = pd.read_csv(PATH + "answers.csv", error_bad_lines=False, delimiter="\t")
+        self.stu_ans_df = pd.read_csv(PATH + "answers.csv", error_bad_lines=False, delimiter=",")
 
-        self.utils = Utilities()
+        self.utils = Utilities.instance()
 
     def get_questions(self, ques_id: float = None):
         """
@@ -96,51 +96,51 @@ class DataExtractor:
         """
 
         if stu_ans_id is not None:
-            stu_ans_list = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score"])
+            stu_ans_list = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score_avg"])
             return stu_ans_list
 
         return self.stu_ans_df.score_avg.to_list()
 
-    def from_pickle(self, file_rel_path: str = ""):
-        """
-         Reads the dictionary dataset from pickle file
+    # def from_pickle(self, file_rel_path: str = ""):
+    #     """
+    #      Reads the dictionary dataset from pickle file
+    #
+    #     :param file_rel_path: str
+    #         File name of the pickle in the directory PATH
+    #         default: empty string ("")
+    #
+    #     :return:
+    #         Returns the data from pickle
+    #     """
+    #
+    #     file_path = self.PATH + file_rel_path
+    #
+    #     with open(file_path, "rb") as pfile:
+    #         dataset = pickle.load(pfile)
+    #
+    #     return dataset
 
-        :param file_rel_path: str
-            File name of the pickle in the directory PATH
-            default: empty string ("")
-
-        :return:
-            Returns the data from pickle
-        """
-
-        file_path = self.PATH + file_rel_path
-
-        with open(file_path, "rb") as pfile:
-            dataset = pickle.load(pfile)
-
-        return dataset
-
-    def crawl_phrases(self):
-        """
-        Crawl all the phrases from the dataset i.e. from all questions, desired answers and student answers. This assists
-        in saving embeddings in a file for all the phrases.
-
-        :return: set()
-            Set of all the unique phrases
-        """
-
-        sent_list = []
-
-        sent_list.extend(self.get_questions())
-        sent_list.extend(self.get_desired_answers())
-        sent_list.extend(self.get_student_answers())
-
-        phrases = set()
-
-        for sentence in sent_list:
-            phrases.update(self.utils.extract_phrases(sentence))
-
-        return phrases
+    # def crawl_phrases(self):
+    #     """
+    #     Crawl all the phrases from the dataset i.e. from all questions, desired answers and student answers. This assists
+    #     in saving embeddings in a file for all the phrases.
+    #
+    #     :return: set()
+    #         Set of all the unique phrases
+    #     """
+    #
+    #     sent_list = []
+    #
+    #     sent_list.extend(self.get_questions())
+    #     sent_list.extend(self.get_desired_answers())
+    #     sent_list.extend(self.get_student_answers())
+    #
+    #     phrases = set()
+    #
+    #     for sentence in sent_list:
+    #         phrases.update(self.utils.extract_phrases(sentence))
+    #
+    #     return phrases
 
 
 class ConvertDataType(DataExtractor):
@@ -171,37 +171,37 @@ class ConvertDataType(DataExtractor):
 
         return data
 
-    def csv_to_pickle(self, dataset_name: str = "pickled"):
-        """
-        Save the dataframe of csv into the dict and save into the pickle. The dict is in the form as explained
-        in the documentation of :func:`<dataset_extractor.ConvertDataType().to_dict>`
+    # def csv_to_pickle(self, dataset_name: str = "pickled"):
+    #     """
+    #     Save the dataframe of csv into the dict and save into the pickle. The dict is in the form as explained
+    #     in the documentation of :func:`<dataset_extractor.ConvertDataType().to_dict>`
+    #
+    #     :param dataset_name: str
+    #         The name to be saved with in the directory PATH
+    #         default: json
+    #
+    #     :return: None
+    #
+    #     """
+    #     dataset = self.to_dict()
+    #     save_path = self.PATH + dataset_name + "_data.p"
+    #     pickle.dump(dataset, open(save_path, "wb"))
 
-        :param dataset_name: str
-            The name to be saved with in the directory PATH
-            default: json
-
-        :return: None
-
-        """
-        dataset = self.to_dict()
-        save_path = self.PATH + dataset_name + "_data.p"
-        pickle.dump(dataset, open(save_path, "wb"))
-
-    def json_to_pickle(self, dataset_name: str = "json"):
-        """
-        Save the dataframe of csv into the dict and save into the json file. The dict is in the form as explained
-        in the documentation of :func:`<dataset_extractor.ConvertDataType().to_dict>`
-
-        :param dataset_name: str
-            The name to be saved with in the directory PATH
-            default: json
-
-        :return: None
-
-        """
-        dataset = self.to_dict()
-
-        save_path = self.PATH + dataset_name + "_data.json"
-
-        with open(save_path, "w") as jfile:
-            json.dump(dataset, jfile)
+    # def json_to_pickle(self, dataset_name: str = "json"):
+    #     """
+    #     Save the dataframe of csv into the dict and save into the json file. The dict is in the form as explained
+    #     in the documentation of :func:`<dataset_extractor.ConvertDataType().to_dict>`
+    #
+    #     :param dataset_name: str
+    #         The name to be saved with in the directory PATH
+    #         default: json
+    #
+    #     :return: None
+    #
+    #     """
+    #     dataset = self.to_dict()
+    #
+    #     save_path = self.PATH + dataset_name + "_data.json"
+    #
+    #     with open(save_path, "w") as jfile:
+    #         json.dump(dataset, jfile)
