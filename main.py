@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     r = random.Random(7)
 
-    for i in range(0, 20):
+    for i in range(0, 2):
         s_no = r.choice(id_list)
         index = r.randint(0, 10)
         print('Id = ', s_no)
@@ -61,10 +61,10 @@ if __name__ == '__main__':
         print("Student answer: ", student_answer)
         print("Assigned score: ", scores[index])
         extract_features = FeatureExtractor(s_no, student_answer, dataset_dict)
-        # extract_features.get_irrelevant_terms()
-        # extract_features.is_wrong_answer()
+        extract_features.get_irrelevant_terms()
+        extract_features.is_wrong_answer()
         # Wrong answers work only when get_wrong_terms method is run, else returns None
-        # extract_features.get_partial_answers()
+        extract_features.get_partial_answers()
         extract_features.get_interchanged_terms()
         print("It took ", time.time() - start, " secs")
         print("----------------------------------------------------------")
