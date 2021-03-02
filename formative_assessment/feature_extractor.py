@@ -21,15 +21,15 @@ __status__ = "Development"
 
 
 class FeatureExtractor:
-    def __init__(self, question_id: float, student_answer: str, dataset: dict, dir_path: str = "dataset/nn_exam/cleaned/"):
+    def __init__(self, question_id: float, student_answer: str, dataset: dict, dir_path: str):
 
         self.dataset_path = dir_path
-        self.extract_data = DataExtractor(self.dataset_path)
+
         self.dataset_dict = dataset
 
         self.question_id = question_id
-        self.question = self.dataset_dict[question_id]["question"]
-        self.des_ans = self.dataset_dict[question_id]["des_answer"]
+        self.question = dataset[question_id]["question"]
+        self.des_ans = dataset[question_id]["desired_answer"]
         self.stu_ans = student_answer
 
         self.utils = Utilities.instance()
@@ -106,15 +106,15 @@ class FeatureExtractor:
         # We only extract noun existing phrases, as the phrases like "called explicitly", "whereas needs" will not
         # provide explicit understanding
 
-        # missed_phrases = partial_answers.get_noun_phrases(missed_phrases)
-        print("Unanswered topics")
-
-        if missed_phrases:
-            print("The student didn't mention about: ")
-            print(missed_phrases.keys())
-
-        else:
-            print("You have written about all the topics")
+        missed_phrases = partial_answers.get_noun_phrases(missed_phrases)
+        # print("Unanswered topics")
+        #
+        # if missed_phrases:
+        #     print("The student didn't mention about: ")
+        #     print(missed_phrases.keys())
+        #
+        # else:
+        #     print("You have written about all the topics")
 
         return missed_phrases
 
@@ -131,28 +131,29 @@ class FeatureExtractor:
         """
 
         iot = InterchangeOfTerms()
-        topics = iot.get_topics(self.question, self.des_ans)
+        ques, des_ans, stu_ans = iot.coref_res(self.question, self.des_ans, self.stu_ans)
+        topics = iot.get_topics(ques, des_ans)
         # TODO: if the heads are null, then we assign the best key-phrase as the head and corresponding verbs as the
         #  tree
 
-        # interchanged = []
-        # missed_topics = set()
-        # sents_num = 0
-        # des_ans_rel = []
+        iot_dict = {"interchanged": [], "missed_topics": set(), "total_sents_num": 0,  "total_topics": 0}
 
-        # if len(topics) > 1:
-        des_ans_rel = iot.generate_tree(topics, self.des_ans)
+        if topics:
 
-        stu_ans = self.utils.corefer_resolution(self.stu_ans)
-        stu_ans_rel = iot.generate_tree(topics, stu_ans)
+            des_ans_rel = iot.generate_tree(topics, des_ans)
 
-        interchanged, missed_topics = iot.is_interchanged(des_ans_rel, stu_ans_rel)
+            # stu_ans = self.utils.corefer_resolution(self.stu_ans)
+            stu_ans_rel = iot.generate_tree(topics, stu_ans)
 
-        sents_num = 0
-        for topic in stu_ans_rel:
-            sents_num += sents_num + len(stu_ans_rel[topic])
+            interchanged, missed_topics = iot.is_interchanged(des_ans_rel, stu_ans_rel)
 
-        iot_dict = {"interchanged": interchanged, "missed_topics": missed_topics, "total_sents_num": sents_num,
-                   "total_topics": len(des_ans_rel)}
+            sents_num = 0
+            for topic in stu_ans_rel:
+                sents_num += sents_num + len(stu_ans_rel[topic])
+
+            iot_dict["interchanged"] = interchanged
+            iot_dict["missed_topics"] = missed_topics
+            iot_dict["total_sents_num"] =  sents_num
+            iot_dict["total_topics"] = len(des_ans_rel)
 
         return iot_dict

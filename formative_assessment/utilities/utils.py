@@ -95,7 +95,7 @@ def align_tokens(des_tokens: List[str], stu_tokens: List[str], align_threshold=0
 class Utilities(PreProcess):
     def __init__(self):
         super().__init__()
-        self.nlp = spacy.load("en_core_web_lg")
+        # self.nlp = spacy.load("en_core_web_lg")
         neuralcoref.add_to_pipe(self.nlp)
         tr = pytextrank.TextRank()
         self.nlp.add_pipe(tr.PipelineComponent, name='textrank', last=True)

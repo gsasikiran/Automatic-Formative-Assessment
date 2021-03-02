@@ -10,6 +10,19 @@ class InterchangeOfTerms:
         self.utils = Utilities.instance()
         self.embed = AssignEmbedding("fasttext")
 
+    def coref_res(self, question, desired_answer, student_answer):
+
+        ques_len: int = len(question)
+        resolved_ques = self.utils.corefer_resolution(question)
+
+        combined_des_ans: str = resolved_ques + " " + desired_answer
+        combined_stu_ans: str = resolved_ques + " " + student_answer
+
+        resolved_des_ans: str = self.utils.corefer_resolution(combined_des_ans)
+        resolved_stu_ans: str = self.utils.corefer_resolution(combined_stu_ans)
+
+        return resolved_ques, resolved_des_ans[ques_len + 1:], resolved_stu_ans[ques_len + 1:]
+
     def get_question_terms(self, question: str):
         """
             Returns the key terms from the question
@@ -51,19 +64,16 @@ class InterchangeOfTerms:
         :return: set
             Returns the set of head words
         """
-        ques_len: int = len(question)
+
 
         # Co-reference resolution for the combination of question and desired answer
-        resolved_ques = self.utils.corefer_resolution(question)
-        combined_str: str = resolved_ques + " " + des_ans
-        resolved_str: str = self.utils.corefer_resolution(combined_str)
+
 
         # Extracting desired answer from co-reference resolution
         # Ignoring the space between the question and desired answer
-        des_ans = resolved_str[ques_len + 1:]
 
         # Text rank key phrase extraction
-        question_kp = self.utils.extract_phrases_tr(resolved_ques)
+        # question_kp = self.utils.extract_phrases_tr(question)
         # question_kp = self.utils.extract_phrases_rake(resolved_ques)
 
         # Generate the common key phrases between the question and desired answer
@@ -72,8 +82,8 @@ class InterchangeOfTerms:
         # TODO: Consider extracting the heads from student answers, if the desired answer did not result in any of the common words
 
         # Return the first extracted key word of the question, if no common words are extracted
-        if len(common_kp) == 0:
-            return {self.utils.remove_articles(question_kp[0])} if len(question_kp) > 0 else []
+        # if len(common_kp) == 0:
+        #     return {self.utils.remove_articles(question_kp[0])} if len(question_kp) > 0 else []
 
         return common_kp
 

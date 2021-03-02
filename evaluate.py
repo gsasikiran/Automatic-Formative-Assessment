@@ -10,14 +10,14 @@ from formative_assessment.dataset_extractor import ConvertDataType
 
 
 class AEGrading:
-    def __init__(self, qid, stu_answer, dataset, max_score=5):
+    def __init__(self, qid, stu_answer, dataset, dataset_path, max_score=5):
 
         self.qid = qid
         self.stu_answer = stu_answer
         self.dataset = dataset
-        self.length_ratio = len(stu_answer) / len(dataset[qid]["des_answer"])
+        self.length_ratio = len(stu_answer) / len(dataset[qid]["desired_answer"])
         self.score = max_score
-        self.fe = FeatureExtractor(qid, stu_answer, dataset)
+        self.fe = FeatureExtractor(qid, stu_answer, dataset, dataset_path)
         self.wrong_terms = {}
 
         self.feedback = {"id": self.qid, "question": self.dataset[self.qid]["question"],
@@ -102,8 +102,8 @@ if __name__ == '__main__':
     dataset_dict = convert_data.to_dict()
 
     id_list = list(dataset_dict.keys())
-    print(len(id_list))
-    # r = random.Random(5)
+
+
     data = []
 
     for s_no in id_list[5:]:
@@ -112,10 +112,10 @@ if __name__ == '__main__':
         # index = r.randint(0, 12)
 
         question = dataset_dict[s_no]["question"]
-        desired_answer = dataset_dict[s_no]["des_answer"]
+        desired_answer = dataset_dict[s_no]["desired_answer"]
 
         # temporary student answer
-        student_answers = dataset_dict[s_no]["stu_answers"]
+        student_answers = dataset_dict[s_no]["student_answers"]
         scores = dataset_dict[s_no]["scores"]
         score_me = dataset_dict[s_no]["score_me"]
         score_other = dataset_dict[s_no]["score_other"]
@@ -126,7 +126,7 @@ if __name__ == '__main__':
             student_answer = student_answers[index]
 
             print(s_no, student_answer)
-            aeg = AEGrading(s_no, student_answer, dataset_dict, max_score=5)
+            aeg = AEGrading(s_no, student_answer, dataset_dict, PATH, max_score=5,)
 
             if aeg.is_answered():
                 aeg.iot_score()

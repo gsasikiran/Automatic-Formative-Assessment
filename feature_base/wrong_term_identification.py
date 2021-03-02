@@ -19,7 +19,7 @@ __status__ = "Development"
 
 
 class IrrelevantTermIdentification:
-    def __init__(self, dataset: dict, DIR_PATH: str = ""):
+    def __init__(self, dataset: dict, DIR_PATH: str):
 
         self.PATH = DIR_PATH
         self.extract_data = DataExtractor(DIR_PATH)
@@ -46,7 +46,7 @@ class IrrelevantTermIdentification:
         """
 
         # question: str = self.dataset_dict[qid]["question"]
-        des_ans: str = self.dataset_dict[qid]["des_answer"]
+        des_ans: str = self.dataset_dict[qid]["desired_answer"]
 
         des_chunks: List[str] = []
         stu_chunks: List[str] = []
@@ -160,7 +160,7 @@ class IrrelevantTermIdentification:
             Values: (int) count
         """
 
-        stu_answers_id = self.extract_data.get_student_answers(id)
+        stu_answers_id = self.dataset_dict[id]["student_answers"]
         stu_answers_all = self.extract_data.get_student_answers()
 
         tokenized_answers = []
@@ -193,22 +193,22 @@ class IrrelevantTermIdentification:
             Values: (float) lexical score
         """
 
-        start = time.time()
+
         t_pw = self._get_lex_count(id, stu_tokens, True)
-        print("Time for lex count = ", time.time() - start)
+
 
         # t_nw = self._get_lex_count(id, stu_tokens, False)
 
-        n_id = len(self.dataset_dict[id]["stu_answers"])
+        n_id = len(self.dataset_dict[id]["student_answers"])
         # n_total = len(self.extract_data.get_student_answers())
 
         score_lw = {}
         # TODO: Remove punctuations or alter considering negative examples
         for token in stu_tokens:
-            score = (t_pw[token] / n_id)  # * ((n_total + 1) - n_id) / (t_nw[token] + 1)  # Smoothing factor = 1; as t_nw can be 0
+            score = (t_pw[token] - 1) / (n_id - 1)  # * ((n_total + 1) - n_id) / (t_nw[token] + 1)  # Smoothing factor = 1; as t_nw can be 0
             # score_lw[token] = sqrt(score)
             score_lw[token] = score
-        print("score time: ", time.time()- start)
+
         return score_lw
 
     def get_softmax_sim(self, des_tokens, stu_tokens):
