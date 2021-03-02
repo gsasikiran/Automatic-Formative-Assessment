@@ -102,7 +102,7 @@ class IrrelevantTermIdentification:
         for key in aligned_tokens:
 
             # stu_token_idx = stu_tokens.index(key)
-            des_token_idx = aligned_tokens[key][0]
+            des_token_idx = aligned_tokens[key][2]
             max_sim = aligned_tokens[key][1]  # max_similarity
             # des_token_idx = np.argmax(self.cos_sim_matrix[stu_token_idx])
 

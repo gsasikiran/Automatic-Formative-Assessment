@@ -89,15 +89,18 @@ class Embedding:
             for j, token in enumerate(tokens):
                 if fntv.is_negation(token):
                     negation_indices.append(j)
+                    # phrases_embed[i] = embeddings
                     continue
                 elif token in negated_terms:
                     embeddings[j] = (-1) * self._ft_embed[token]
                     negated_terms.remove(token)  # We remove to assign negative vector only once.
+                    phrases_embed[i] = self._mowe(embeddings)
                 else:
                     embeddings[j] = self._ft_embed[token]
+                    phrases_embed[i] = self._mowe(embeddings)
 
-            embeddings = np.delete(embeddings, negation_indices, 0)
-            phrases_embed[i] = self._mowe(embeddings)
+            # embeddings = np.delete(embeddings, negation_indices, 0)
+
         return phrases_embed
 
     def use(self, tokens: List[str]):
@@ -135,7 +138,9 @@ class Embedding:
         :return:
             Mean of the embeddings
         """
-        return self._sowe(embeddings) / embeddings.shape[0]
+        if embeddings.any():
+            return self._sowe(embeddings) / embeddings.shape[0]
+
 
 
 class AssignEmbedding(Embedding):

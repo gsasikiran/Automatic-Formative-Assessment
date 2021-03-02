@@ -37,7 +37,7 @@ __last_modified__ = "18.01.2020"
 __status__ = "Development"
 
 
-def cosine_sim_matrix(tokens_1: List[str], tokens_2: List[str], embed_name: str = "use"):
+def cosine_sim_matrix(tokens_1: List[str], tokens_2: List[str], embed_name: str = "fasttext"):
     """
         Generate cosine similarity matrix for the given list of tokens
     :param tokens_1: List[str]
@@ -84,11 +84,12 @@ def align_tokens(des_tokens: List[str], stu_tokens: List[str], align_threshold=0
         max_sim = max(row)
         if max_sim > align_threshold:
             index = np.argmax(row)  # generate the index of the maximum similarity
-            token_alignment[stu_tokens[i]] = (index, max_sim)
+            token_alignment[stu_tokens[i]] = (des_tokens[index], max_sim, index)
         else:
             continue
 
     return token_alignment
+
 
 @Singleton
 class Utilities(PreProcess):
@@ -175,99 +176,110 @@ class Utilities(PreProcess):
         doc = self.nlp(text.lower())
         return doc._.coref_resolved
 
-    # def extract_phrases(self, text: str):
-    #     """
-    #         Extracts the phrases of the text extracted from Flair package
-    #     :param text: string
-    #     :return: List[str]
-    #         Returns the extracted list of phrases from the input text
-    #     """
-    #
-    #     sentence = Sentence(text)
-    #     self.chunk_tagger.predict(sentence)
-    #
-    #     token_list: List[str] = []
-    #     token_tags: List[str] = []
-    #
-    #     for token in sentence:
-    #         token_list.append(token.text)
-    #
-    #         for label_type in token.annotation_layers.keys():
-    #             # if token.get_labels(label_type)[0].value == "O":
-    #             #     token_tags.append('O')
-    #             # if token.get_labels(label_type)[0].value == "_":
-    #             #     token_tags.append('_')
-    #             token_tags.append(token.get_labels(label_type)[0].value)  # Append token tags for each token
-    #
-    #     phrases: List[str] = self._get_flair_phrases(token_list, token_tags)
-    #
-    #     return phrases
-    #
-    # @staticmethod
-    # def _get_flair_phrases(token_list: List[str], token_tags: List[str]):
-    #     """
-    #         Generate the phrases from the extracted tokens and their corresponding tags, by merging the relevant tokens
-    #     :param token_list: List[str]
-    #         List of strings of tokens
-    #     :param token_tags: List[str]
-    #         List of tags in order with tokens, extracted by Flair package
-    #     :return: List[str]
-    #         Returns the list of phrases merging the relevant tokens
-    #     """
-    #
-    #     assert len(token_tags) == len(token_list)
-    #
-    #     phrases = []
-    #     phrase = ''
-    #
-    #     # Creating the list of outside phrases and '_' phrases
-    #     for token, tag in zip(token_list, token_tags):
-    #         if token in string.punctuation:
-    #             continue
-    #
-    #         if '-' not in tag:  # '-' do not occur for the single token tags.
-    #             phrases.append(token)
-    #
-    #         else:
-    #             state, phrase_pos = tag.split('-')
-    #             if state == 'B':
-    #                 phrase = ''
-    #                 phrase += token
-    #             elif state == 'I':
-    #                 phrase += ' ' + token
-    #             elif state == 'E':
-    #                 phrase += ' ' + token
-    #                 phrases.append(phrase)
-    #             elif state == 'S':
-    #                 phrases.append(token)
-    #
-    #     return phrases
+    def extract_phrases(self, text: str):
+        """
+            Extracts the phrases of the text extracted from Flair package
+        :param text: string
+        :return: List[str]
+            Returns the extracted list of phrases from the input text
+        """
 
-    # def extract_phrases_tr(self, text: str):
-    #     """
-    #         Returns only noun key phrases
-    #         Source: https://spacy.io/universe/project/spacy-pytextrank
-    #
-    #     :param text: The text in which the key phrases should be extracted
-    #     :return: List[str]
-    #         Returns list of strings of key phrases in the text
-    #     """
-    #
-    #     doc = self.nlp(text)
-    #
-    #     phrases = []
-    #
-    #     for p in doc._.phrases:
-    #         phrases.append(p.text)
-    #
-    #     return phrases
+        sentence = Sentence(text)
+        self.chunk_tagger.predict(sentence)
+
+        token_list: List[str] = []
+        token_tags: List[str] = []
+
+        for token in sentence:
+            token_list.append(token.text)
+
+            for label_type in token.annotation_layers.keys():
+                # if token.get_labels(label_type)[0].value == "O":
+                #     token_tags.append('O')
+                # if token.get_labels(label_type)[0].value == "_":
+                #     token_tags.append('_')
+                token_tags.append(token.get_labels(label_type)[0].value)  # Append token tags for each token
+
+        phrases: List[str] = self._get_flair_phrases(token_list, token_tags)
+
+        return phrases
+
+    @staticmethod
+    def _get_flair_phrases(token_list: List[str], token_tags: List[str]):
+        """
+            Generate the phrases from the extracted tokens and their corresponding tags, by merging the relevant tokens
+        :param token_list: List[str]
+            List of strings of tokens
+        :param token_tags: List[str]
+            List of tags in order with tokens, extracted by Flair package
+        :return: List[str]
+            Returns the list of phrases merging the relevant tokens
+        """
+
+        assert len(token_tags) == len(token_list)
+
+        phrases = []
+        phrase = ''
+
+        # Creating the list of outside phrases and '_' phrases
+        for token, tag in zip(token_list, token_tags):
+            if token in string.punctuation:
+                continue
+
+            if '-' not in tag:  # '-' do not occur for the single token tags.
+                phrases.append(token)
+
+            else:
+                state, phrase_pos = tag.split('-')
+                if state == 'B':
+                    phrase = ''
+                    phrase += token
+                elif state == 'I':
+                    phrase += ' ' + token
+                elif state == 'E':
+                    phrase += ' ' + token
+                    phrases.append(phrase)
+                elif state == 'S':
+                    phrases.append(token)
+
+        phrases = [phrase for phrase in phrases if re.match("\w+", phrase)]  # Else it returns consecutive punctuations like "..."
+
+        return phrases
+
+    def extract_phrases_tr(self, text: str):
+        """
+            Returns only noun key phrases
+            Source: https://spacy.io/universe/project/spacy-pytextrank
+
+        :param text: The text in which the key phrases should be extracted
+        :return: List[str]
+            Returns list of strings of key phrases in the text
+        """
+
+        doc = self.nlp(text)
+
+        phrases = []
+
+        for p in doc._.phrases:
+            phrases.append(p.text)
+
+        phrases = [phrase for phrase in phrases if re.match("\w+", phrase)] # Else it returns consecutive punctuations like "..."
+        if phrases:
+            return phrases
+        else:
+            return [text]
 
     @staticmethod
     def extract_phrases_rake(text: str):
 
         r = Rake()
         r.extract_keywords_from_text(text)
-        return r.get_ranked_phrases()
+        phrases = r.get_ranked_phrases()
+        phrases = [phrase for phrase in phrases if re.match("\w+", phrase)] # Else it returns consecutive punctuations like "..."
+        if phrases:
+            return phrases
+        else:
+            return [text]
 
     @staticmethod
     def softmax_ranked_phrases_rake(text: str):
@@ -338,15 +350,15 @@ class Utilities(PreProcess):
         :return: str
             Text without any articles
         """
-        pattern = re.compile(r"\\b(a|an|the)\\W")
-        return pattern.sub("", text.lower())
+        pattern = re.sub('(a|an|the)(\s+)', '', text)
+        return pattern
 
     def get_common_keyphrases(self, text1, text2):
 
-        # text1_kp = set(self.extract_phrases_tr(text1))
-        # text2_kp = set(self.extract_phrases_tr(text2))
-        text1_kp = set(self.extract_phrases_rake(text1))
-        text2_kp = set(self.extract_phrases_rake(text2))
+        text1_kp = set(self.extract_phrases_tr(text1))
+        text2_kp = set(self.extract_phrases_tr(text2))
+        # text1_kp = set(self.extract_phrases_rake(text1))
+        # text2_kp = set(self.extract_phrases_rake(text2))
 
         text1_updated = set()
         text2_updated = set()

@@ -1,6 +1,7 @@
 """
  Consists dataset utilities, that extract the data from csv, pickle and json files. Converts dataset types and files.
 """
+import csv
 import json
 import pickle
 
@@ -20,8 +21,9 @@ class DataExtractor:
     def __init__(self, PATH: str):
 
         self.PATH = PATH
+
         self.ques_df = pd.read_csv(PATH + "questions.csv", error_bad_lines=False, delimiter="\t")
-        self.stu_ans_df = pd.read_csv(PATH + "answers.csv", error_bad_lines=False, delimiter=",")
+        self.stu_ans_df = pd.read_csv(PATH + "answers.csv", error_bad_lines=False, delimiter="\t")
 
         self.utils = Utilities.instance()
 
@@ -101,6 +103,26 @@ class DataExtractor:
 
         return self.stu_ans_df.score_avg.to_list()
 
+    def other_mohler_scores(self,stu_ans_id: float = None):
+        """
+        The column name of the student answer should be named as the answer in answers file
+
+        :param stu_ans_id: float
+            The id of the the student answers to get
+            default: None
+
+        :return: List[int]
+            Returns the list of all student scores,
+            Else if the stu_ans_id is given, returns the list of student scores for that id
+        """
+
+        if stu_ans_id is not None:
+            stu_ans_list_me = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score_me"])
+            stu_ans_list_other = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score_other"])
+            return {"score_me": stu_ans_list_me, "score_other" : stu_ans_list_other}
+
+        return {"score_me": self.stu_ans_df.score_me.to_list(), "score_other" : self.stu_ans_df.score_other.to_list()}
+
     # def from_pickle(self, file_rel_path: str = ""):
     #     """
     #      Reads the dictionary dataset from pickle file
@@ -168,6 +190,8 @@ class ConvertDataType(DataExtractor):
             data[id]["des_answer"] = self.get_desired_answers(id)
             data[id]["stu_answers"] = self.get_student_answers(id)
             data[id]["scores"] = self.get_scores(id)
+            data[id]["score_me"] = self.other_mohler_scores(id)["score_me"]
+            data[id]["score_other"] = self.other_mohler_scores(id)["score_other"]
 
         return data
 

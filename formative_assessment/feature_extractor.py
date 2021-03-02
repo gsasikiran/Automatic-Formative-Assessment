@@ -10,6 +10,7 @@ from feature_base.wrong_term_identification import IrrelevantTermIdentification
 from feature_base.partial_terms import PartialTerms
 from formative_assessment.dataset_extractor import DataExtractor
 from formative_assessment.utilities.utils import Utilities
+from formative_assessment.negated_term_vector import FlipNegatedTermVector
 
 __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
@@ -20,7 +21,7 @@ __status__ = "Development"
 
 
 class FeatureExtractor:
-    def __init__(self, question_id: float, stu_answer: str, dataset: dict, dir_path: str = "dataset/nn_exam/cleaned/"):
+    def __init__(self, question_id: float, student_answer: str, dataset: dict, dir_path: str = "dataset/nn_exam/cleaned/"):
 
         self.dataset_path = dir_path
         self.extract_data = DataExtractor(self.dataset_path)
@@ -29,7 +30,7 @@ class FeatureExtractor:
         self.question_id = question_id
         self.question = self.dataset_dict[question_id]["question"]
         self.des_ans = self.dataset_dict[question_id]["des_answer"]
-        self.stu_ans = stu_answer
+        self.stu_ans = student_answer
 
         self.utils = Utilities.instance()
         self.words_score = {}
@@ -38,7 +39,7 @@ class FeatureExtractor:
         """
             Returns all the probable wrong terms of the student answer
 
-        :param term_threshold:
+        :param stu_ans: str
         :param sem_weight: float
             Between 0 and 1. Semantic weight we assign to the similarity feature. 1-sim_weight is assigned to the
             lexical feature. default: 0.8
@@ -61,17 +62,18 @@ class FeatureExtractor:
         for token in pp_stu_ans:
             self.words_score[token] = (sem_weight * sim_score[token]) + (lex_weight * lex_score[token])
 
-        print("Probable wrong terms or unwanted terms in the answer")
-        wrong_terms = {key for (key, value) in self.words_score.items() if value < term_threshold}
+        print("Probable irrelevant terms in the answer")
+        irrelevant_terms = {key for (key, value) in self.words_score.items() if value < term_threshold}
 
+        fntv = FlipNegatedTermVector()
         # We demote questions from extracted wrong terms
-        wrong_terms_demoted = set()
-        for term in wrong_terms:
+        terms_demoted = set()
+        for term in irrelevant_terms:
             demoted_string = self.utils.demote_ques(self.question, term)
-            if demoted_string:
-                wrong_terms_demoted.add(demoted_string)
+            if demoted_string and not fntv.is_negation(demoted_string):
+                terms_demoted.add(demoted_string)
 
-        return wrong_terms_demoted
+        return terms_demoted
 
     def is_wrong_answer(self, wrong_answer_threshold: float = -0.5, expected_similarity: float = 0.8):
         """
@@ -127,27 +129,30 @@ class FeatureExtractor:
             The missed topics asked in question and written in desired answer but not presented in the student answer
 
         """
-        start = time.time()
-        iot = InterchangeOfTerms()
-        print("Instantiation time: ", time.time() - start)
 
+        iot = InterchangeOfTerms()
         topics = iot.get_topics(self.question, self.des_ans)
-        print("Assigning topics: ", time.time() - start)
         # TODO: if the heads are null, then we assign the best key-phrase as the head and corresponding verbs as the
         #  tree
+
+        # interchanged = []
+        # missed_topics = set()
+        # sents_num = 0
+        # des_ans_rel = []
+
+        # if len(topics) > 1:
         des_ans_rel = iot.generate_tree(topics, self.des_ans)
-        print("Des answer tree: ", time.time() - start)
+
         stu_ans = self.utils.corefer_resolution(self.stu_ans)
         stu_ans_rel = iot.generate_tree(topics, stu_ans)
-        print("Student answer tree: ", time.time() - start)
 
         interchanged, missed_topics = iot.is_interchanged(des_ans_rel, stu_ans_rel)
-        print("check interchaged ", time.time() - start)
+
         sents_num = 0
         for topic in stu_ans_rel:
             sents_num += sents_num + len(stu_ans_rel[topic])
 
-        iot = {"interchanged": interchanged, "missed_topics": missed_topics, "total_sents_num": sents_num,
-               "total_topics": len(des_ans_rel)}
+        iot_dict = {"interchanged": interchanged, "missed_topics": missed_topics, "total_sents_num": sents_num,
+                   "total_topics": len(des_ans_rel)}
 
-        return iot
+        return iot_dict
