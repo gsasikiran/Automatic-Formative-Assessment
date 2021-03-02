@@ -34,10 +34,12 @@ class PartialTerms():
         des_demoted: str = self.utils.demote_ques(question, des_ans)
         stu_demoted: str = self.utils.demote_ques(question, stu_ans)
 
+        des_phrases_softmax: dict = {}
         if des_demoted:
-            des_phrases_softmax: dict = self.utils.softmax_ranked_phrases_rake(des_demoted)
-            des_phrases.update(self.utils.extract_phrases_rake(des_demoted))
-
+            des_phrases_softmax = self.utils.softmax_ranked_phrases_rake(des_demoted)
+            print("Desired phrases weights:", des_phrases_softmax)
+            des_phrases.update(des_phrases_softmax.keys())
+            print(des_phrases)
         # for sent in stu_sents:
         if stu_demoted:
             stu_phrases.update(self.utils.extract_phrases_rake(stu_demoted))
@@ -47,8 +49,8 @@ class PartialTerms():
 
         if des_phrases:
             if stu_phrases:
-                aligned_words = align_tokens(list(des_phrases), list(stu_phrases))
-
+                aligned_words = align_tokens(list(des_phrases), list(stu_phrases), align_threshold=0.5)
+                print(aligned_words)
                 written_phrases = set()
                 for value in aligned_words.values():
                     written_phrases.add(value[0])

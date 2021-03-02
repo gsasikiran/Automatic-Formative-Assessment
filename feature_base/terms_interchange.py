@@ -8,7 +8,7 @@ from formative_assessment.utilities.embed import AssignEmbedding
 class InterchangeOfTerms:
     def __init__(self):
         self.utils = Utilities.instance()
-        self.embed = AssignEmbedding("use")
+        self.embed = AssignEmbedding("fasttext")
 
     def get_question_terms(self, question: str):
         """
@@ -18,6 +18,30 @@ class InterchangeOfTerms:
             Return the list of strings of key terms
         """
         return self.utils.extract_phrases_rake(question)
+
+    # def _get_common_keyphrases(self, question, answer):
+    #
+    #     # text1_kp = set(self.extract_phrases_tr(text1))
+    #     # text2_kp = set(self.extract_phrases_tr(text2))
+    #     text1_kp = set(self.utils.extract_phrases_rake(question))
+    #     text2_kp = set(self.utils.extract_phrases_rake(answer))
+    #
+    #     text1_updated = set()
+    #     text2_updated = set()
+    #
+    #     for text in text1_kp:
+    #         filtered_text = self.remove_articles(text)
+    #         lemmas = self.lemmatize(filtered_text)
+    #         filtered_text = " ".join(lemmas)
+    #         text1_updated.add(filtered_text)
+    #
+    #     for text2 in text2_kp:
+    #         filtered_text = self.remove_articles(text)
+    #         lemmas = self.lemmatize(filtered_text)
+    #         filtered_text = " ".join(lemmas)
+    #         text2_updated.add(filtered_text)
+    #
+    #     return text1_updated.intersection(text2_updated)
 
     def get_topics(self, question: str, des_ans: str):
         """
@@ -39,8 +63,8 @@ class InterchangeOfTerms:
         des_ans = resolved_str[ques_len + 1:]
 
         # Text rank key phrase extraction
-        # question_kp = self.utils.extract_phrases_tr(resolved_ques)
-        question_kp = self.utils.extract_phrases_rake(resolved_ques)
+        question_kp = self.utils.extract_phrases_tr(resolved_ques)
+        # question_kp = self.utils.extract_phrases_rake(resolved_ques)
 
         # Generate the common key phrases between the question and desired answer
         common_kp = self.utils.get_common_keyphrases(question, des_ans)
