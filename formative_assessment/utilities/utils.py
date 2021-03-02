@@ -406,6 +406,21 @@ class Utilities(PreProcess):
 
         return re.split("[?.,:;]/* ", text)
 
+    def combined_coref_res(self, text1, text2):
+
+        text1_len: int = len(text1)
+        # resolved_text1 = self.corefer_resolution(text1)
+
+        combined_text: str = text1 + " " + text2
+        resolved_text: str = self.corefer_resolution(combined_text)
+
+        resolved_text1 = resolved_text[:text1_len]
+        resolved_text2 = resolved_text[text1_len + 1:]
+
+        return resolved_text1, resolved_text2
+
+
+
     # @staticmethod
     # def wordnet_syn(word_1: str):
     #

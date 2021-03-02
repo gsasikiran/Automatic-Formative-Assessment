@@ -101,20 +101,20 @@ class FeatureExtractor:
     def get_partial_answers(self):
 
         partial_answers = PartialTerms()
-        missed_phrases = partial_answers.get_missed_phrases(self.question, self.des_ans, self.stu_ans)
+
+        ques, des_ans = self.utils.combined_coref_res(self.question, self.des_ans)
+        _, stu_ans = self.utils.combined_coref_res(self.question, self.stu_ans)
+
+        missed_phrases_all: dict = partial_answers.get_missed_phrases(ques, des_ans, stu_ans)
 
         # We only extract noun existing phrases, as the phrases like "called explicitly", "whereas needs" will not
         # provide explicit understanding
 
-        missed_phrases = partial_answers.get_noun_phrases(missed_phrases)
-        # print("Unanswered topics")
-        #
-        # if missed_phrases:
-        #     print("The student didn't mention about: ")
-        #     print(missed_phrases.keys())
-        #
-        # else:
-        #     print("You have written about all the topics")
+        missed_phrases_nouns: list = partial_answers.get_noun_phrases(list(missed_phrases_all.keys()))
+
+        missed_phrases = {}
+        for phrase in missed_phrases_nouns:
+            missed_phrases[phrase] = missed_phrases_all[phrase]
 
         return missed_phrases
 
@@ -131,7 +131,9 @@ class FeatureExtractor:
         """
 
         iot = InterchangeOfTerms()
-        ques, des_ans, stu_ans = iot.coref_res(self.question, self.des_ans, self.stu_ans)
+        ques, des_ans = self.utils.combined_coref_res(self.question, self.des_ans)
+        _, stu_ans = self.utils.combined_coref_res(self.question, self.stu_ans)
+
         topics = iot.get_topics(ques, des_ans)
         # TODO: if the heads are null, then we assign the best key-phrase as the head and corresponding verbs as the
         #  tree
@@ -147,13 +149,13 @@ class FeatureExtractor:
 
             interchanged, missed_topics = iot.is_interchanged(des_ans_rel, stu_ans_rel)
 
-            sents_num = 0
+            total_sents_num = 0
             for topic in stu_ans_rel:
-                sents_num += sents_num + len(stu_ans_rel[topic])
+                total_sents_num += total_sents_num + len(stu_ans_rel[topic])
 
             iot_dict["interchanged"] = interchanged
             iot_dict["missed_topics"] = missed_topics
-            iot_dict["total_sents_num"] =  sents_num
+            iot_dict["total_sents_num"] = total_sents_num
             iot_dict["total_topics"] = len(des_ans_rel)
 
         return iot_dict

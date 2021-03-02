@@ -10,18 +10,6 @@ class InterchangeOfTerms:
         self.utils = Utilities.instance()
         self.embed = AssignEmbedding("fasttext")
 
-    def coref_res(self, question, desired_answer, student_answer):
-
-        ques_len: int = len(question)
-        resolved_ques = self.utils.corefer_resolution(question)
-
-        combined_des_ans: str = resolved_ques + " " + desired_answer
-        combined_stu_ans: str = resolved_ques + " " + student_answer
-
-        resolved_des_ans: str = self.utils.corefer_resolution(combined_des_ans)
-        resolved_stu_ans: str = self.utils.corefer_resolution(combined_stu_ans)
-
-        return resolved_ques, resolved_des_ans[ques_len + 1:], resolved_stu_ans[ques_len + 1:]
 
     def get_question_terms(self, question: str):
         """
