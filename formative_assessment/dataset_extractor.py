@@ -98,7 +98,7 @@ class DataExtractor:
         """
 
         if stu_ans_id is not None:
-            stu_ans_list = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score_avg"])
+            stu_ans_list = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score"])
             return stu_ans_list
 
         return self.stu_ans_df.score_avg.to_list()
@@ -190,8 +190,8 @@ class ConvertDataType(DataExtractor):
             data[id]["desired_answer"] = self.get_desired_answers(id)
             data[id]["student_answers"] = self.get_student_answers(id)
             data[id]["scores"] = self.get_scores(id)
-            data[id]["score_me"] = self.other_mohler_scores(id)["score_me"]
-            data[id]["score_other"] = self.other_mohler_scores(id)["score_other"]
+            # data[id]["score_me"] = self.other_mohler_scores(id)["score_me"]
+            # data[id]["score_other"] = self.other_mohler_scores(id)["score_other"]
 
         return data
 

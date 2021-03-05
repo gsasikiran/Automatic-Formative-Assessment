@@ -77,20 +77,13 @@ class PreProcess:
             Returns string of answer with removing the words present in the question
         """
 
-        question_tokens = self.lemmatize(question)
+        question_tokens = self.tokenize(question)  # Because answer cannot be lemmatized directly
+        question_tokens = [self.lemmatize(token)[0] for token in question_tokens]
         answer_tokens = self.tokenize(answer)  # cannot lemmatize, as we need the original tokens of the answer
 
         answer_tokens = [token for token in answer_tokens if self.lemmatize(token)[0] not in question_tokens]
 
         if answer_tokens:
             return " ".join(answer_tokens)
-            # demoted_answer = ''
-            #
-            # for i in range(len(answer_tokens)):
-            #     if i == len(answer_tokens) - 1:
-            #         demoted_answer += answer_tokens[i]
-            #         return demoted_answer
-            #     demoted_answer += answer_tokens[i] + ' '
-
         else:
             return None

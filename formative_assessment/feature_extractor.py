@@ -5,9 +5,9 @@ import time
 
 import regex as re
 
-from feature_base.terms_interchange import InterchangeOfTerms
-from feature_base.wrong_term_identification import IrrelevantTermIdentification
-from feature_base.partial_terms import PartialTerms
+from feature_base.interchange_of_topics import InterchangeOfTopics
+from feature_base.missed_terms import MissedTerms
+from feature_base.irrelevant_terms import IrrelevantTermIdentification
 from formative_assessment.dataset_extractor import DataExtractor
 from formative_assessment.utilities.utils import Utilities
 from formative_assessment.negated_term_vector import FlipNegatedTermVector
@@ -33,7 +33,48 @@ class FeatureExtractor:
         self.stu_ans = student_answer
 
         self.utils = Utilities.instance()
-        self.words_score = {}
+
+    def get_interchanged_topics(self):
+        """
+            Extracts interchanged topics and missed topics in the student answer
+
+        :return: Dict
+            Returns the dictionary of interchanged topics, missed topics, total relations extracted, and total topics
+            extracted
+
+        """
+
+        iot = InterchangeOfTopics()
+
+        # Substituting the pronouns with actual topic
+        ques, des_ans = self.utils.combined_coref_res(self.question, self.des_ans)
+        _, stu_ans = self.utils.combined_coref_res(self.question, self.stu_ans)
+
+        topics = iot.get_topics(ques, des_ans)
+
+        iot_dict = {"interchanged": [], "missed_topics": set(), "total_relations": 0,  "total_topics": 0}
+
+        # When only one topic is asked, the student is expected to write about only that topic. Hence we consider only
+        # when multiple topics are present in the question
+        if len(topics) > 1:
+
+            # Extracting relations in the desired and student answers from the topic
+            des_ans_rel = iot.generate_tree(topics, des_ans)
+            stu_ans_rel = iot.generate_tree(topics, stu_ans)
+
+            interchanged, missed_topics = iot.get_interchanged_and_missed(des_ans_rel, stu_ans_rel)
+
+            total_relations = 0
+            for topic in stu_ans_rel:
+                total_relations += total_relations + len(stu_ans_rel[topic])
+
+            iot_dict["interchanged"] = interchanged
+            iot_dict["missed_topics"] = missed_topics
+            iot_dict["total_relations"] = total_relations
+            # We do not consider the direct topics, as desired answer may not expect all the topics to be answered
+            iot_dict["total_topics"] = len(des_ans_rel)
+
+        return iot_dict
 
     def get_irrelevant_terms(self, sem_weight: float = 1, term_threshold: float = 0.35):
         """
@@ -59,11 +100,12 @@ class FeatureExtractor:
         lex_weight = 1 - sem_weight
         lex_score = iti.get_lex_score(self.question_id, pp_stu_ans)
 
+        words_score = {}
         for token in pp_stu_ans:
-            self.words_score[token] = (sem_weight * sim_score[token]) + (lex_weight * lex_score[token])
+            words_score[token] = (sem_weight * sim_score[token]) + (lex_weight * lex_score[token])
 
         print("Probable irrelevant terms in the answer")
-        irrelevant_terms = {key for (key, value) in self.words_score.items() if value < term_threshold}
+        irrelevant_terms = {key for (key, value) in words_score.items() if value < term_threshold}
 
         fntv = FlipNegatedTermVector()
         # We demote questions from extracted wrong terms
@@ -75,32 +117,33 @@ class FeatureExtractor:
 
         return terms_demoted
 
-    def is_wrong_answer(self, wrong_answer_threshold: float = -0.5, expected_similarity: float = 0.8):
-        """
-            Returns if the answer is wrong or not.
-
-        :param wrong_answer_threshold: float
-            The float value in between 0 and 1 of which below the value, we consider the answer as the wrong answer
-            default: 0.3
-
-        :param expected_similarity: float
-            The expected similarity of all the answers
-
-        :return: bool
-            Returns true if the answer is totally or sub-optimally correct, else return false
-        """
-
-        # Average of the answer score
-        total = sum(self.words_score.values()) / (len(self.words_score))
-
-        answer_score = (2 * total) - 1  # normalizing between -1 and 1 from 0 and 1
-        print("Answer score: ", answer_score)
-
-        return answer_score < wrong_answer_threshold
+    # def is_wrong_answer(self, wrong_answer_threshold: float = -0.5, expected_similarity: float = 0.8):
+    #     """
+    #         Returns if the answer is wrong or not.
+    #
+    #     :param wrong_answer_threshold: float
+    #         The float value in between 0 and 1 of which below the value, we consider the answer as the wrong answer
+    #         default: 0.3
+    #
+    #     :param expected_similarity: float
+    #         The expected similarity of all the answers
+    #
+    #     :return: bool
+    #         Returns true if the answer is totally or sub-optimally correct, else return false
+    #     """
+    #
+    #     # Average of the answer score
+    #     total = sum(self.words_score.values()) / (len(self.words_score))
+    #
+    #     answer_score = (2 * total) - 1  # normalizing between -1 and 1 from 0 and 1
+    #     print("Answer score: ", answer_score)
+    #
+    #     return answer_score < wrong_answer_threshold
 
     def get_partial_answers(self):
 
-        partial_answers = PartialTerms()
+        print("Extracting missed terms")
+        partial_answers = MissedTerms()
 
         ques, des_ans = self.utils.combined_coref_res(self.question, self.des_ans)
         _, stu_ans = self.utils.combined_coref_res(self.question, self.stu_ans)
@@ -118,44 +161,4 @@ class FeatureExtractor:
 
         return missed_phrases
 
-    def get_interchanged_terms(self):
-        """
-            Prints which terms has been interchanged in the student answer
 
-        :return: List, set
-            List: Interchanged terms in the list for each interchanged terms.
-            The order of triplets are ["desired topic", "written topic", "written sentence"]
-            Set: Missed topics
-            The missed topics asked in question and written in desired answer but not presented in the student answer
-
-        """
-
-        iot = InterchangeOfTerms()
-        ques, des_ans = self.utils.combined_coref_res(self.question, self.des_ans)
-        _, stu_ans = self.utils.combined_coref_res(self.question, self.stu_ans)
-
-        topics = iot.get_topics(ques, des_ans)
-        # TODO: if the heads are null, then we assign the best key-phrase as the head and corresponding verbs as the
-        #  tree
-
-        iot_dict = {"interchanged": [], "missed_topics": set(), "total_sents_num": 0,  "total_topics": 0}
-
-        if topics:
-
-            des_ans_rel = iot.generate_tree(topics, des_ans)
-
-            # stu_ans = self.utils.corefer_resolution(self.stu_ans)
-            stu_ans_rel = iot.generate_tree(topics, stu_ans)
-
-            interchanged, missed_topics = iot.is_interchanged(des_ans_rel, stu_ans_rel)
-
-            total_sents_num = 0
-            for topic in stu_ans_rel:
-                total_sents_num += total_sents_num + len(stu_ans_rel[topic])
-
-            iot_dict["interchanged"] = interchanged
-            iot_dict["missed_topics"] = missed_topics
-            iot_dict["total_sents_num"] = total_sents_num
-            iot_dict["total_topics"] = len(des_ans_rel)
-
-        return iot_dict

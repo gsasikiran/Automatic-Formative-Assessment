@@ -8,8 +8,6 @@ import spacy
 
 from scipy.spatial.distance import cosine
 
-from individual_files.negated_term_vector import FlipNegatedTermVector
-
 
 class FlipNegatedTermVector:
 
