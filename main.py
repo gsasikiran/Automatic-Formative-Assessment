@@ -49,10 +49,10 @@ if __name__ == '__main__':
         question = dataset_dict[s_no]["question"]
         print("Question: ", question)
 
-        desired_answer = dataset_dict[s_no]["des_answer"]
+        desired_answer = dataset_dict[s_no]["desired_answer"]
         print("Desired answer: ", desired_answer)
         # temporary student answer
-        student_answers = dataset_dict[s_no]["stu_answers"]
+        student_answers = dataset_dict[s_no]["student_answers"]
         scores = dataset_dict[s_no]["scores"]
 
         # for i, _ in enumerate(student_answers):

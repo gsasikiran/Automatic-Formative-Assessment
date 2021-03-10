@@ -95,7 +95,7 @@ def align_tokens(des_tokens: List[str], stu_tokens: List[str], align_threshold=0
 class Utilities(PreProcess):
     def __init__(self):
         super().__init__()
-        self.nlp = spacy.load("en_core_web_lg")
+        # self.nlp = spacy.load("en_core_web_lg")
         neuralcoref.add_to_pipe(self.nlp)
         tr = pytextrank.TextRank()
         self.nlp.add_pipe(tr.PipelineComponent, name='textrank', last=True)
@@ -242,7 +242,8 @@ class Utilities(PreProcess):
                 elif state == 'S':
                     phrases.append(token)
 
-        phrases = [phrase for phrase in phrases if re.match("\w+", phrase)]  # Else it returns consecutive punctuations like "..."
+        phrases = [phrase for phrase in phrases if
+                   re.match("\w+", phrase)]  # Else it returns consecutive punctuations like "..."
 
         return phrases
 
@@ -263,7 +264,8 @@ class Utilities(PreProcess):
         for p in doc._.phrases:
             phrases.append(p.text)
 
-        phrases = [phrase for phrase in phrases if re.match("\w+", phrase)] # Else it returns consecutive punctuations like "..."
+        phrases = [phrase for phrase in phrases if
+                   re.match("\w+", phrase)]  # Else it returns consecutive punctuations like "..."
         if phrases:
             return phrases
         else:
@@ -275,7 +277,8 @@ class Utilities(PreProcess):
         r = Rake()
         r.extract_keywords_from_text(text)
         phrases = r.get_ranked_phrases()
-        phrases = [phrase for phrase in phrases if re.match("\w+", phrase)] # Else it returns consecutive punctuations like "..."
+        phrases = [phrase for phrase in phrases if
+                   re.match("\w+", phrase)]  # Else it returns consecutive punctuations like "..."
         if phrases:
             return phrases
         else:
@@ -353,31 +356,7 @@ class Utilities(PreProcess):
         pattern = re.sub('(a|an|the)(\s+)', '', text)
         return pattern
 
-    def get_common_keyphrases(self, text1, text2):
-
-        text1_kp = set(self.extract_phrases_tr(text1))
-        text2_kp = set(self.extract_phrases_tr(text2))
-        # text1_kp = set(self.extract_phrases_rake(text1))
-        # text2_kp = set(self.extract_phrases_rake(text2))
-
-        text1_updated = set()
-        text2_updated = set()
-
-        for text in text1_kp:
-            filtered_text = self.remove_articles(text)
-            lemmas = self.lemmatize(filtered_text)
-            filtered_text = " ".join(lemmas)
-            text1_updated.add(filtered_text)
-
-        for text in text2_kp:
-            filtered_text = self.remove_articles(text)
-            lemmas = self.lemmatize(filtered_text)
-            filtered_text = " ".join(lemmas)
-            text2_updated.add(filtered_text)
-
-        return text1_updated.intersection(text2_updated)
-
-    def open_ie(self, text: str):
+    def relation_extraction(self, text: str):
 
         doc = self.nlp(text)
         sentences: List[str] = [sent.text for sent in doc.sents]
@@ -405,6 +384,19 @@ class Utilities(PreProcess):
         """
 
         return re.split("[?.,:;]/* ", text)
+
+    def combined_coref_res(self, text1, text2):
+
+        text1_len: int = len(text1)
+        # resolved_text1 = self.corefer_resolution(text1)
+
+        combined_text: str = text1 + " " + text2
+        resolved_text: str = self.corefer_resolution(combined_text)
+
+        resolved_text1 = resolved_text[:text1_len]
+        resolved_text2 = resolved_text[text1_len + 1:]
+
+        return resolved_text1, resolved_text2
 
     # @staticmethod
     # def wordnet_syn(word_1: str):

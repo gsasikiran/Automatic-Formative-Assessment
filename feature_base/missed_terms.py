@@ -1,3 +1,6 @@
+"""
+ Implementation to extract the missed terms in a student answer automatically.
+"""
 from typing import List
 
 import spacy
@@ -5,11 +8,10 @@ import spacy
 from formative_assessment.utilities.utils import Utilities, align_tokens
 
 
-class PartialTerms():
-
+class MissedTerms:
     def __init__(self):
         self.utils = Utilities.instance()
-        self.nlp = spacy.load('en_core_web_lg')
+        self.nlp = self.utils.nlp
 
     def get_missed_phrases(self, question, des_ans, stu_ans):
         """
@@ -18,12 +20,10 @@ class PartialTerms():
         :param des_ans: str
         :param stu_ans: str
 
-        :return: List[str]
-            List of phrases
+        :return: Dict
+            Dict with phrases as tokens and softmax weights as values
         """
 
-        des_ans = self.utils.corefer_resolution(des_ans)
-        stu_ans = self.utils.corefer_resolution(stu_ans)
         # des_sents = self.utils.split_by_punct(des_ans)
         # stu_sents = self.utils.split_by_punct(stu_ans)
 
@@ -39,7 +39,7 @@ class PartialTerms():
             des_phrases_softmax = self.utils.softmax_ranked_phrases_rake(des_demoted)
             print("Desired phrases weights:", des_phrases_softmax)
             des_phrases.update(des_phrases_softmax.keys())
-            print(des_phrases)
+
         # for sent in stu_sents:
         if stu_demoted:
             stu_phrases.update(self.utils.extract_phrases_rake(stu_demoted))
@@ -49,8 +49,8 @@ class PartialTerms():
 
         if des_phrases:
             if stu_phrases:
-                aligned_words = align_tokens(list(des_phrases), list(stu_phrases), align_threshold=0.5)
-                print(aligned_words)
+                aligned_words = align_tokens(list(des_phrases), list(stu_phrases), align_threshold=0.4)
+
                 written_phrases = set()
                 for value in aligned_words.values():
                     written_phrases.add(value[0])

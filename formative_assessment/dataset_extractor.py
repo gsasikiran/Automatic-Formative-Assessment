@@ -98,7 +98,7 @@ class DataExtractor:
         """
 
         if stu_ans_id is not None:
-            stu_ans_list = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score_avg"])
+            stu_ans_list = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score"])
             return stu_ans_list
 
         return self.stu_ans_df.score_avg.to_list()
@@ -175,7 +175,7 @@ class ConvertDataType(DataExtractor):
         Convert the dataframe of pandas into dict
 
         :return: dict Returns the dictionary in the order of { id_1 : {"question" : "", "des_answer" : "",
-        "stu_answers" : ["", ""]}, id_2 : {"question" : "", "des_answer" : "", "stu_answers" : [ "", ""]}, ---}
+        "stu_answers" : ["", ""]}, id_2 : {"question" : "", "desired_answer" : "", "student_answers" : [ "", ""]}, ---}
         """
         data = {}
 
@@ -187,11 +187,11 @@ class ConvertDataType(DataExtractor):
 
             data[id] = {}
             data[id]["question"] = self.get_questions(id)
-            data[id]["des_answer"] = self.get_desired_answers(id)
-            data[id]["stu_answers"] = self.get_student_answers(id)
+            data[id]["desired_answer"] = self.get_desired_answers(id)
+            data[id]["student_answers"] = self.get_student_answers(id)
             data[id]["scores"] = self.get_scores(id)
-            data[id]["score_me"] = self.other_mohler_scores(id)["score_me"]
-            data[id]["score_other"] = self.other_mohler_scores(id)["score_other"]
+            # data[id]["score_me"] = self.other_mohler_scores(id)["score_me"]
+            # data[id]["score_other"] = self.other_mohler_scores(id)["score_other"]
 
         return data
 

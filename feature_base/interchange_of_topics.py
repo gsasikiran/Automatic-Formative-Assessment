@@ -1,88 +1,79 @@
+"""
+ Class extracts the interchange of topics and missed topics from student answer
+"""
 import re
 import numpy as np
+from typing import List
 
 from formative_assessment.utilities.utils import Utilities
 from formative_assessment.utilities.embed import AssignEmbedding
 
 
-class InterchangeOfTerms:
+class InterchangeOfTopics:
     def __init__(self):
         self.utils = Utilities.instance()
         self.embed = AssignEmbedding("fasttext")
 
-    def get_question_terms(self, question: str):
+    def _get_common_keyphrases(self, text1, text2):
         """
-            Returns the key terms from the question
-        :param question: str
-        :return: List[str]
-            Return the list of strings of key terms
-        """
-        return self.utils.extract_phrases_rake(question)
+            Return the common normalized keyphrases between text1 and text2
 
-    # def _get_common_keyphrases(self, question, answer):
-    #
-    #     # text1_kp = set(self.extract_phrases_tr(text1))
-    #     # text2_kp = set(self.extract_phrases_tr(text2))
-    #     text1_kp = set(self.utils.extract_phrases_rake(question))
-    #     text2_kp = set(self.utils.extract_phrases_rake(answer))
-    #
-    #     text1_updated = set()
-    #     text2_updated = set()
-    #
-    #     for text in text1_kp:
-    #         filtered_text = self.remove_articles(text)
-    #         lemmas = self.lemmatize(filtered_text)
-    #         filtered_text = " ".join(lemmas)
-    #         text1_updated.add(filtered_text)
-    #
-    #     for text2 in text2_kp:
-    #         filtered_text = self.remove_articles(text)
-    #         lemmas = self.lemmatize(filtered_text)
-    #         filtered_text = " ".join(lemmas)
-    #         text2_updated.add(filtered_text)
-    #
-    #     return text1_updated.intersection(text2_updated)
+        :param text1: str
+        :param text2: st
+
+        :return: set
+            Common keyphrases in both the texts
+        """
+
+        # Extract text rank keyphrases as they provide only noun based keyphrases
+        text1_kp = set(self.utils.extract_phrases_tr(text1))
+        text2_kp = set(self.utils.extract_phrases_tr(text2))
+        # text1_kp = set(self.extract_phrases_rake(text1))
+        # text2_kp = set(self.extract_phrases_rake(text2))
+
+        text1_updated = set()
+        text2_updated = set()
+
+        # Normalizing the keyphrases
+        for text in text1_kp:
+            filtered_text = self.utils.remove_articles(text)
+            # we extract the lemmas, as we focus on root word for checking the common terms.
+            lemmas = self.utils.lemmatize(filtered_text)
+            filtered_text = " ".join(lemmas)
+            text1_updated.add(filtered_text)
+
+        for text in text2_kp:
+            filtered_text = self.utils.remove_articles(text)
+            lemmas = self.utils.lemmatize(filtered_text)
+            filtered_text = " ".join(lemmas)
+            text2_updated.add(filtered_text)
+
+        return text1_updated.intersection(text2_updated)
 
     def get_topics(self, question: str, des_ans: str):
         """
-            Generate the head words of which the question is asked about.
+            Generate the topics of which the question is asked about.
         :param question: str
         :param des_ans: str
         :return: set
-            Returns the set of head words
+            Returns the set of topics
         """
-        ques_len: int = len(question)
-
-        # Co-reference resolution for the combination of question and desired answer
-        resolved_ques = self.utils.corefer_resolution(question)
-        combined_str: str = resolved_ques + " " + des_ans
-        resolved_str: str = self.utils.corefer_resolution(combined_str)
-
-        # Extracting desired answer from co-reference resolution
-        # Ignoring the space between the question and desired answer
-        des_ans = resolved_str[ques_len + 1:]
-
-        # Text rank key phrase extraction
-        question_kp = self.utils.extract_phrases_tr(resolved_ques)
-        # question_kp = self.utils.extract_phrases_rake(resolved_ques)
 
         # Generate the common key phrases between the question and desired answer
-        common_kp = self.utils.get_common_keyphrases(question, des_ans)
+        topics = self._get_common_keyphrases(question, des_ans)
 
-        # TODO: Consider extracting the heads from student answers, if the desired answer did not result in any of the common words
+        return topics
 
-        # Return the first extracted key word of the question, if no common words are extracted
-        if len(common_kp) == 0:
-            return {self.utils.remove_articles(question_kp[0])} if len(question_kp) > 0 else []
+    def generate_tree(self, heads: List[str], answer: str):
+        """
+          Create a tree with topics as heads and relations as branches.
 
-        return common_kp
+        :param heads: List[str]
+        :param answer: str
+        :return: List[str]
+        """
 
-    def generate_tree(self, heads: str, answer: str):
-
-        # TODO: check the relation extraction for the sentences with verbs with "be" form.
-        #  For example, "Constructor is a first method in a class."
-
-        relations = self.utils.open_ie(answer)
+        relations = self.utils.relation_extraction(answer)
 
         tree = {}
 
@@ -122,19 +113,17 @@ class InterchangeOfTerms:
                     tree[topic].append(sent[1:])
         return tree
 
-    @staticmethod
-    def _create_sent_tree(tree):
+    def get_interchanged_and_missed(self, des_tree: dict, stu_tree: dict, interchange_threshold: float = 0.5):
+        """
+            From the input, desired and student trees, extracts if any interchanged and missed topics
 
-        sents = {}
-        for topic in tree:
-            sents[topic] = []
-            for att in tree[topic]:
-                sent = att[0] + " " + att[1]
-                sents[topic].append(sent)
-
-        return sents
-
-    def is_interchanged(self, des_tree, stu_tree, interchange_threshold=0.5):
+        :param des_tree: Dict
+        :param stu_tree: Dict
+        :param interchange_threshold: float
+        :return:
+            interchanged topics: List
+            Missed topics: set
+        """
 
         des_sents = des_tree  # self._create_sent_tree(des_tree)
         stu_sents = stu_tree  # self._create_sent_tree(stu_tree)
@@ -184,3 +173,15 @@ class InterchangeOfTerms:
                             continue
 
         return interchanged, missed_topics
+
+    # @staticmethod
+    # def _create_sent_tree(tree):
+    #
+    #     sents = {}
+    #     for topic in tree:
+    #         sents[topic] = []
+    #         for att in tree[topic]:
+    #             sent = att[0] + " " + att[1]
+    #             sents[topic].append(sent)
+    #
+    #     return sents

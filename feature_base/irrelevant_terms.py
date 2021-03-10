@@ -1,11 +1,9 @@
 """
  Implementation to extract the wrong terms/phrases in a student answer automatically.
 """
-import time
 from typing import List, Dict
 
 import numpy as np
-from scipy.special import softmax
 
 from formative_assessment.dataset_extractor import DataExtractor
 from formative_assessment.utilities.utils import Utilities, cosine_sim_matrix, align_tokens
@@ -14,12 +12,12 @@ __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
 __license__ = ""
 __version__ = ""
-__last_modified__ = "18.01.2020"
+__last_modified__ = "10.03.2021"
 __status__ = "Development"
 
 
 class IrrelevantTermIdentification:
-    def __init__(self, dataset: dict, DIR_PATH: str = ""):
+    def __init__(self, dataset: dict, DIR_PATH: str):
 
         self.PATH = DIR_PATH
         self.extract_data = DataExtractor(DIR_PATH)
@@ -46,7 +44,7 @@ class IrrelevantTermIdentification:
         """
 
         # question: str = self.dataset_dict[qid]["question"]
-        des_ans: str = self.dataset_dict[qid]["des_answer"]
+        des_ans: str = self.dataset_dict[qid]["desired_answer"]
 
         des_chunks: List[str] = []
         stu_chunks: List[str] = []
@@ -155,13 +153,12 @@ class IrrelevantTermIdentification:
             if true, returns number of student answers, the tokens have appeared
             if false, returns number of student answers, the tokens have not appeared
 
-        :return: counter
+        :return: Dict
             Keys: (str) tokens
             Values: (int) count
         """
 
-        stu_answers_id = self.extract_data.get_student_answers(id)
-        stu_answers_all = self.extract_data.get_student_answers()
+        stu_answers_id = self.dataset_dict[id]["student_answers"]
 
         tokenized_answers = []
 
@@ -171,6 +168,7 @@ class IrrelevantTermIdentification:
         else:
             # Extracting the other student answers, that do not belong to given id. These are used to check the false
             # positives of the tokens
+            stu_answers_all = self.extract_data.get_student_answers()
             stu_answers_other = [answer for answer in stu_answers_all if answer not in stu_answers_id]
             for i in range(len(stu_answers_other)):
                 tokenized_answers.append(self.utils.extract_phrases(stu_answers_other[i]))
@@ -193,43 +191,41 @@ class IrrelevantTermIdentification:
             Values: (float) lexical score
         """
 
-        start = time.time()
         t_pw = self._get_lex_count(id, stu_tokens, True)
-        print("Time for lex count = ", time.time() - start)
-
         # t_nw = self._get_lex_count(id, stu_tokens, False)
 
-        n_id = len(self.dataset_dict[id]["stu_answers"])
+        n_id = len(self.dataset_dict[id]["student_answers"])
         # n_total = len(self.extract_data.get_student_answers())
 
         score_lw = {}
         # TODO: Remove punctuations or alter considering negative examples
         for token in stu_tokens:
-            score = (t_pw[token] / n_id)  # * ((n_total + 1) - n_id) / (t_nw[token] + 1)  # Smoothing factor = 1; as t_nw can be 0
+            score = (t_pw[token] - 1) / (
+                        n_id - 1)  # * ((n_total + 1) - n_id) / (t_nw[token] + 1)  # Smoothing factor = 1; as t_nw can be 0
             # score_lw[token] = sqrt(score)
             score_lw[token] = score
-        print("score time: ", time.time()- start)
+
         return score_lw
 
-    def get_softmax_sim(self, des_tokens, stu_tokens):
-        """
-
-        :param des_tokens:
-        :param stu_tokens:
-        :return:
-        """
-
-        self.cos_sim_matrix = assign_cos_sim_matrix(stu_tokens, des_tokens)
-        softmax_matrix = softmax(self.cos_sim_matrix, axis=1)  # Column axis
-
-        weighted_matrix = np.sqrt(np.multiply(self.cos_sim_matrix, softmax_matrix))
-        sim_matrix = np.average(weighted_matrix, axis=1)
-
-        sim_score_dict = {}
-
-        # assert len(stu_tokens) ==  sim_matrix.size
-
-        for i in range(0, len(stu_tokens)):
-            sim_score_dict[stu_tokens[i]] = sim_matrix[i]
-
-        return sim_score_dict
+    # def get_softmax_sim(self, des_tokens, stu_tokens):
+    #     """
+    #
+    #     :param des_tokens:
+    #     :param stu_tokens:
+    #     :return:
+    #     """
+    #
+    #     self.cos_sim_matrix = cosine_sim_matrix(stu_tokens, des_tokens)
+    #     softmax_matrix = softmax(self.cos_sim_matrix, axis=1)  # Column axis
+    #
+    #     weighted_matrix = np.sqrt(np.multiply(self.cos_sim_matrix, softmax_matrix))
+    #     sim_matrix = np.average(weighted_matrix, axis=1)
+    #
+    #     sim_score_dict = {}
+    #
+    #     # assert len(stu_tokens) ==  sim_matrix.size
+    #
+    #     for i in range(0, len(stu_tokens)):
+    #         sim_score_dict[stu_tokens[i]] = sim_matrix[i]
+    #
+    #     return sim_score_dict
