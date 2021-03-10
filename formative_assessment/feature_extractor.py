@@ -1,22 +1,18 @@
 """
 Abstraction of all the features that are to be extracted for the formative assessment.
 """
-import time
-
-import regex as re
 
 from feature_base.interchange_of_topics import InterchangeOfTopics
-from feature_base.missed_terms import MissedTerms
 from feature_base.irrelevant_terms import IrrelevantTermIdentification
-from formative_assessment.dataset_extractor import DataExtractor
-from formative_assessment.utilities.utils import Utilities
+from feature_base.missed_terms import MissedTerms
 from formative_assessment.negated_term_vector import FlipNegatedTermVector
+from formative_assessment.utilities.utils import Utilities
 
 __author__ = "Sasi Kiran Gaddipati"
 __credits__ = []
 __license__ = ""
 __version__ = ""
-__last_modified__ = "18.01.2020"
+__last_modified__ = "10.03.2021"
 __status__ = "Development"
 
 
@@ -52,7 +48,7 @@ class FeatureExtractor:
 
         topics = iot.get_topics(ques, des_ans)
 
-        iot_dict = {"interchanged": [], "missed_topics": set(), "total_relations": 0,  "total_topics": 0}
+        iot_dict = {"interchanged": [], "missed_topics": set(), "total_relations": 0, "total_topics": 0}
 
         # When only one topic is asked, the student is expected to write about only that topic. Hence we consider only
         # when multiple topics are present in the question
@@ -75,6 +71,32 @@ class FeatureExtractor:
             iot_dict["total_topics"] = len(des_ans_rel)
 
         return iot_dict
+
+    def get_missed_terms(self):
+        """
+            Generate the missed terms in the student answer comparing it to the desired answer
+        :return: List[str]
+        """
+
+        print("Extracting missed terms")
+        partial_answers = MissedTerms()
+
+        ques, des_ans = self.utils.combined_coref_res(self.question, self.des_ans)
+        _, stu_ans = self.utils.combined_coref_res(self.question, self.stu_ans)
+
+        missed_phrases_score: dict = partial_answers.get_missed_phrases(ques, des_ans, stu_ans)
+
+        # We only extract noun existing phrases, as the phrases like "called explicitly", "whereas needs" will not
+        # provide explicit understanding
+
+        missed_phrases_nouns: list = partial_answers.get_noun_phrases(list(missed_phrases_score.keys()))
+
+        missed_phrases = {}
+
+        for phrase in missed_phrases_nouns:
+            missed_phrases[phrase] = missed_phrases_score[phrase]
+
+        return missed_phrases
 
     def get_irrelevant_terms(self, sem_weight: float = 1, term_threshold: float = 0.35):
         """
@@ -117,6 +139,7 @@ class FeatureExtractor:
 
         return terms_demoted
 
+
     # def is_wrong_answer(self, wrong_answer_threshold: float = -0.5, expected_similarity: float = 0.8):
     #     """
     #         Returns if the answer is wrong or not.
@@ -139,26 +162,3 @@ class FeatureExtractor:
     #     print("Answer score: ", answer_score)
     #
     #     return answer_score < wrong_answer_threshold
-
-    def get_partial_answers(self):
-
-        print("Extracting missed terms")
-        partial_answers = MissedTerms()
-
-        ques, des_ans = self.utils.combined_coref_res(self.question, self.des_ans)
-        _, stu_ans = self.utils.combined_coref_res(self.question, self.stu_ans)
-
-        missed_phrases_all: dict = partial_answers.get_missed_phrases(ques, des_ans, stu_ans)
-
-        # We only extract noun existing phrases, as the phrases like "called explicitly", "whereas needs" will not
-        # provide explicit understanding
-
-        missed_phrases_nouns: list = partial_answers.get_noun_phrases(list(missed_phrases_all.keys()))
-
-        missed_phrases = {}
-        for phrase in missed_phrases_nouns:
-            missed_phrases[phrase] = missed_phrases_all[phrase]
-
-        return missed_phrases
-
-

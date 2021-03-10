@@ -88,7 +88,7 @@ class AEGrading:
         :return: None
         """
 
-        missed_terms = self.fe.get_partial_answers()
+        missed_terms = self.fe.get_missed_terms()
         self.feedback["missed_terms"] = missed_terms.keys()
 
         total = round(sum(missed_terms.values()), 3)
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     data = []
 
     # random.seed(20)
-    for s_no in id_list:
+    for s_no in id_list[1:]:
 
         # s_no = random.choice(id_list)
         question = dataset_dict[s_no]["question"]
@@ -155,9 +155,9 @@ if __name__ == '__main__':
 
             if len(data) % 50 == 0:
                 df = pd.DataFrame(data)
-                PATH = "outputs/automatic_evaluation/II_NN/" + str(datetime.datetime.now()) + ".csv"
-                df.to_csv(PATH, sep=",")
+                SAVE_PATH = "outputs/automatic_evaluation/II_NN/" + str(datetime.datetime.now()) + ".csv"
+                df.to_csv(SAVE_PATH, sep=",")
 
     df = pd.DataFrame(data)
-    PATH = "outputs/automatic_evaluation/II_NN/" + str(datetime.datetime.now()) + ".csv"
-    df.to_csv(PATH, sep=",")
+    SAVE_PATH = "outputs/automatic_evaluation/II_NN/" + str(datetime.datetime.now()) + ".csv"
+    df.to_csv(SAVE_PATH, sep=",")

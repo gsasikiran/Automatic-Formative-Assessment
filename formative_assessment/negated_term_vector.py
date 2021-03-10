@@ -1,5 +1,13 @@
+"""
+    Flips the negation implied word vector to the other side. Consider the following example
+     text = "I am not using your pen."
+
+     Here, 'not' is negation and 'using' is negation implied word. Hence, we ignore the vector of 'not' and reverse the
+     direction of 'using' vector.
+"""
+
 __author__ = "Sasi Kiran Gaddipati"
-__copyright__ = "Copyright (C) 2020 Sasi Kiran Gaddipati"
+__copyright__ = "Copyright (C) 2021 Sasi Kiran Gaddipati"
 __license__ = "Public Domain"
 __version__ = "1.0"
 
