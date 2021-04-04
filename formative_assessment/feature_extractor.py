@@ -9,11 +9,12 @@ from formative_assessment.negated_term_vector import FlipNegatedTermVector
 from formative_assessment.utilities.utils import Utilities
 
 __author__ = "Sasi Kiran Gaddipati"
-__credits__ = []
+__credits__ = ["Tim Metzler"]
 __license__ = ""
-__version__ = ""
-__last_modified__ = "10.03.2021"
-__status__ = "Development"
+__version__ = "1.0.1"
+__email__ = "sasi-kiran.gaddipati@smail.inf.h-brs.de"
+__last_modified__ = "04.04.2021"
+__status__ = "Prototype"
 
 
 class FeatureExtractor:
@@ -98,7 +99,7 @@ class FeatureExtractor:
 
         return missed_phrases
 
-    def get_irrelevant_terms(self, sem_weight: float = 1, term_threshold: float = 0.35):
+    def get_irrelevant_terms(self, sem_weight: float = 0.5, term_threshold: float = 0.35):
         """
             Returns all the probable wrong terms of the student answer
 
@@ -108,7 +109,7 @@ class FeatureExtractor:
             lexical feature. default: 0.8
         :param term_threshold: float
             The threshold of which below that value, we consider the term as the wrong term
-            default: 0.3
+            default: 0.35
 
         :return: Set
             Returns the set of wrong terms
@@ -117,6 +118,7 @@ class FeatureExtractor:
         iti = IrrelevantTermIdentification(self.dataset_dict, DIR_PATH=self.dataset_path)
 
         pp_des_ans, pp_stu_ans = iti.preprocess(self.question_id, self.stu_ans)
+
         sim_score = iti.get_sim_score(pp_des_ans, pp_stu_ans)
 
         lex_weight = 1 - sem_weight

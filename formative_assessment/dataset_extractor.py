@@ -10,12 +10,12 @@ import pandas as pd
 from formative_assessment.utilities.utils import Utilities
 
 __author__ = "Sasi Kiran Gaddipati"
-__credits__ = []
+__credits__ = ["Tim Metzler"]
 __license__ = ""
-__version__ = ""
-__last_modified__ = "06.12.2020"
-__status__ = "Development"
-
+__version__ = "1.0.1"
+__email__ = "sasi-kiran.gaddipati@smail.inf.h-brs.de"
+__last_modified__ = "04.04.2021"
+__status__ = "Prototype"
 
 class DataExtractor:
     def __init__(self, PATH: str):
@@ -98,7 +98,7 @@ class DataExtractor:
         """
 
         if stu_ans_id is not None:
-            stu_ans_list = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score"])
+            stu_ans_list = list(self.stu_ans_df.loc[self.stu_ans_df["id"] == stu_ans_id, "score_avg"])
             return stu_ans_list
 
         return self.stu_ans_df.score_avg.to_list()

@@ -8,6 +8,15 @@ from typing import List
 from formative_assessment.utilities.utils import Utilities
 from formative_assessment.utilities.embed import AssignEmbedding
 
+__author__ = "Sasi Kiran Gaddipati"
+__credits__ = ["Tim Metzler"]
+__license__ = ""
+__version__ = "1.0.1"
+__email__ = "sasi-kiran.gaddipati@smail.inf.h-brs.de"
+__last_modified__ = "04.04.2021"
+__status__ = "Prototype"
+
+
 
 class InterchangeOfTopics:
     def __init__(self):
@@ -164,9 +173,9 @@ class InterchangeOfTopics:
                             else:
                                 for des_topic in des_sents:
                                     if des_values[index] in des_sents[des_topic]:
-
-                                        print("You have interchanged the terms/phrase of topic \"" + des_topic + "\" to "
-                                              "the topic \"" + topic + "\" for the sentence \"" + sent + "\"")
+                                        print(
+                                            "You have interchanged the terms/phrase of topic \"" + des_topic + "\" to "
+                                                                                                               "the topic \"" + topic + "\" for the sentence \"" + sent + "\"")
                                         interchanged.append([des_topic, topic, sent])
 
                         else:

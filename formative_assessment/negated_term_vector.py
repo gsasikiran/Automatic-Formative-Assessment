@@ -7,9 +7,12 @@
 """
 
 __author__ = "Sasi Kiran Gaddipati"
-__copyright__ = "Copyright (C) 2021 Sasi Kiran Gaddipati"
-__license__ = "Public Domain"
-__version__ = "1.0"
+__credits__ = ["Tim Metzler"]
+__license__ = ""
+__version__ = "1.0.1"
+__email__ = "sasi-kiran.gaddipati@smail.inf.h-brs.de"
+__last_modified__ = "04.04.2021"
+__status__ = "Prototype"
 
 import numpy as np
 import spacy
@@ -90,9 +93,9 @@ class FlipNegatedTermVector:
 
 
 if __name__ == '__main__':
-    ref = 'can return a value'
+    ref = 'Function prototype is a declaration'
 
-    var_1 = 'cannot return a value'
+    var_1 = 'Function prototype is not a declaration'
 
     fntv = FlipNegatedTermVector()
 

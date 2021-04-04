@@ -1,12 +1,22 @@
 from typing import List
-import numpy as np
+
 import gensim
-import tensorflow as tf
+import numpy as np
 import tensorflow_hub as hub
-from bert_embedding import BertEmbedding
 from allennlp.modules.elmo import Elmo, batch_to_ids
-from formative_assessment.utilities.preprocessing import PreProcess
+from bert_embedding import BertEmbedding
+
 from formative_assessment.negated_term_vector import FlipNegatedTermVector
+from formative_assessment.utilities.preprocessing import PreProcess
+
+__author__ = "Sasi Kiran Gaddipati"
+__credits__ = ["Tim Metzler"]
+__license__ = ""
+__version__ = "1.0.1"
+__email__ = "sasi-kiran.gaddipati@smail.inf.h-brs.de"
+__last_modified__ = "04.04.2021"
+__status__ = "Prototype"
+
 
 class Embedding:
 
@@ -47,7 +57,7 @@ class Embedding:
 
         return embed_array
 
-    def elmo(self, phrases: List[str], embed_dim = 1024):
+    def elmo(self, phrases: List[str], embed_dim=1024):
         """
 
         :param phrases:
@@ -140,7 +150,6 @@ class Embedding:
         """
         if embeddings.any():
             return self._sowe(embeddings) / embeddings.shape[0]
-
 
 
 class AssignEmbedding(Embedding):
