@@ -11,6 +11,13 @@ import pandas as pd
 from formative_assessment.dataset_extractor import ConvertDataType
 from formative_assessment.feature_extractor import FeatureExtractor
 
+__author__ = "Sasi Kiran Gaddipati"
+__credits__ = ["Tim Metzler"]
+__license__ = ""
+__version__ = "1.0.1"
+__email__ = "sasi-kiran.gaddipati@smail.inf.h-brs.de"
+__last_modified__ = "04.04.2021"
+__status__ = "Prototype"
 
 class AEGrading:
     """
@@ -106,8 +113,8 @@ class AEGrading:
 
 if __name__ == '__main__':
 
-    PATH = "dataset/nn_exam/cleaned/"
-    max_score = 2
+    PATH = "dataset/mohler/cleaned/"
+    max_score = 5
 
     # Convert the data into  dictionary with ids, their corresponding questions, desired answers and student answers
     convert_data = ConvertDataType(PATH)
@@ -117,7 +124,7 @@ if __name__ == '__main__':
     data = []
 
     # random.seed(20)
-    for s_no in id_list[1:]:
+    for s_no in id_list[:7]:
 
         # s_no = random.choice(id_list)
         question = dataset_dict[s_no]["question"]
@@ -131,7 +138,7 @@ if __name__ == '__main__':
         for index, _ in enumerate(student_answers):
             # index = random.randint(0, 12)
             start = time.time()
-            student_answer = student_answers[index]
+            student_answer = str(student_answers[index])
 
             print(s_no, student_answer)
             aeg = AEGrading(s_no, student_answer, dataset_dict, PATH, max_score)

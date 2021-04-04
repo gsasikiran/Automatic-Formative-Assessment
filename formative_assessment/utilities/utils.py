@@ -30,11 +30,12 @@ from formative_assessment.utilities.preprocessing import PreProcess
 from formative_assessment.utilities.embed import AssignEmbedding
 
 __author__ = "Sasi Kiran Gaddipati"
-__credits__ = []
+__credits__ = ["Tim Metzler"]
 __license__ = ""
-__version__ = ""
-__last_modified__ = "18.01.2020"
-__status__ = "Development"
+__version__ = "1.0.1"
+__email__ = "sasi-kiran.gaddipati@smail.inf.h-brs.de"
+__last_modified__ = "04.04.2021"
+__status__ = "Prototype"
 
 
 def cosine_sim_matrix(tokens_1: List[str], tokens_2: List[str], embed_name: str = "fasttext"):
@@ -357,7 +358,7 @@ class Utilities(PreProcess):
         return pattern
 
     def relation_extraction(self, text: str):
-
+        # TODO: change the function name to "Information extraction"
         doc = self.nlp(text)
         sentences: List[str] = [sent.text for sent in doc.sents]
 

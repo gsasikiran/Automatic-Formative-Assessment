@@ -1,7 +1,15 @@
-import numpy as np
 from typing import List
 
 from formative_assessment.utilities.utils import Utilities
+
+__author__ = "Sasi Kiran Gaddipati"
+__credits__ = ["Tim Metzler"]
+__license__ = ""
+__version__ = "1.0.1"
+__email__ = "sasi-kiran.gaddipati@smail.inf.h-brs.de"
+__last_modified__ = "04.04.2021"
+__status__ = "Prototype"
+
 
 class KeyPhraseExtractor:
 
@@ -14,10 +22,10 @@ class KeyPhraseExtractor:
     def _get_mmr(self, text_vector, phrase_vectors: List, rel_factor=0.5):
         mmr = []
         for i in range(0, len(phrase_vectors)):
-            mmr.append(rel_factor * self._get_cos_sim_norm(phrase_vectors[i], text_vector) -  (1 - rel_factor))
+            mmr.append(rel_factor * self._get_cos_sim_norm(phrase_vectors[i], text_vector) - (1 - rel_factor))
         return mmr
 
-    def extract_key_phrases(self, text: str, N = 5, relevance_factor = 0.5):
+    def extract_key_phrases(self, text: str, N=5, relevance_factor=0.5):
         """
             Implements "Simple Unsupervised Keyphrase Extraction using Sentence Embeddings" using USE vectors
         :param text:

@@ -22,11 +22,12 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
 warnings.filterwarnings("ignore")
 
 __author__ = "Sasi Kiran Gaddipati"
-__credits__ = []
+__credits__ = ["Tim Metzler"]
 __license__ = ""
-__version__ = ""
-__last_modified__ = "08.02.2020"
-__status__ = "Development"
+__version__ = "1.0.1"
+__email__ = "sasi-kiran.gaddipati@smail.inf.h-brs.de"
+__last_modified__ = "04.04.2021"
+__status__ = "Prototype"
 
 if __name__ == '__main__':
     PATH = "dataset/mohler/cleaned/"

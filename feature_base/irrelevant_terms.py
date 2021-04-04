@@ -9,11 +9,12 @@ from formative_assessment.dataset_extractor import DataExtractor
 from formative_assessment.utilities.utils import Utilities, cosine_sim_matrix, align_tokens
 
 __author__ = "Sasi Kiran Gaddipati"
-__credits__ = []
+__credits__ = ["Tim Metzler"]
 __license__ = ""
-__version__ = ""
-__last_modified__ = "10.03.2021"
-__status__ = "Development"
+__version__ = "1.0.1"
+__email__ = "sasi-kiran.gaddipati@smail.inf.h-brs.de"
+__last_modified__ = "04.04.2021"
+__status__ = "Prototype"
 
 
 class IrrelevantTermIdentification:
@@ -91,7 +92,7 @@ class IrrelevantTermIdentification:
 
         # NOTE: we consider student tokens as rows and desired tokens as columns for ease of operation
         self.cos_sim_matrix = cosine_sim_matrix(stu_tokens, des_tokens)
-
+        print(self.cos_sim_matrix, stu_tokens, des_tokens)
         aligned_tokens: Dict = align_tokens(des_tokens, stu_tokens, align_threshold=-1)
 
         rank_dict = {}
