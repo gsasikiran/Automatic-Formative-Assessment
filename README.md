@@ -16,6 +16,20 @@ data. We also created an automatic pipeline for scoring criteria based on these 
 
 ## Requirements
 
+pandas~=1.1.1
+typing~=3.6.6
+numpy~=1.19.2
+scipy~=1.4.1
+spacy~=2.3.2
+matplotlib~=3.3.0
+scikit-learn~=0.23.1
+gensim~=3.8.3
+allennlp~=1.2.1
+neuralcoref~=4.0
+pytextrank~=2.0.2
+flair~=0.5.1
+nltk~=3.5
+
 ## Datasets
  We tested our pipeline on Mohler dataset and Neural Networks dataset. Mohler dataset is a publicly available computer-science domain dataset contains 2273 student answers for 80 questions
 collected from the University of Texas undergraduate students. The student answers are graded from 0(totally wrong) to 5(totally correct). Neural networks dataset is a private dataset 
