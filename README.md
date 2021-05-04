@@ -10,41 +10,48 @@ feedback by comparing with the desired answer. These features include:
 This implementation can be integrated to any domain or subject with no training required. However, currently we use domain-specific trained fasttext word embeddings on computer-science 
 data. We also created an automatic pipeline for scoring criteria based on these four features.
 
-# Overview
+## Overview
 
 ![](images/feature_extraction.jpg)
 
-# Requirements
+## Requirements
 
-# Datasets
+## Datasets
  We tested our pipeline on Mohler dataset and Neural Networks dataset. Mohler dataset is a publicly available computer-science domain dataset contains 2273 student answers for 80 questions
 collected from the University of Texas undergraduate students. The student answers are graded from 0(totally wrong) to 5(totally correct). Neural networks dataset is a private dataset 
 provided by Bonn-Rhein-Sieg University of Applied Sciences, MAS department. It contains 1137 student answers for 40 questions and graded from 0-2.
 
-# Installation
+## Installation
 
-# Evaluation
+## Evaluation
 
 
+## Results
 
-# Results
-
-## Qualitative outputs
+### Qualitative outputs
 
 ```
-**Question:**  What is a variable?
-**Desired answer:** A location in memory that can store a value.
-**Student answer:** Variable can be a integer or a string in a program.
+Question:  What is a variable?
+Desired answer: A location in memory that can store a value.
+Student answer: Variable can be a integer or a string in a program.
 ------------------------------------------------------------------------
-* **Interchange of topics:** None
-* **Missed topics:** None
-* **Missed terms:** *'memory', 'location'*
-* **Irrelevant terms:** *'integer', 'program'*
+Interchange of topics: None
+Missed topics: None
+Missed terms: 'memory', 'location'
+Irrelevant terms:'integer', 'program'
 ```
 
-## Quantitative outputs
+### Quantitative outputs
 
 
+#### Manual evaluation
+The following image projects the human agreement data distribution for different features
+![](images/manual_violin_plot.png)
+
+#### Automatic evaluation
+The graph illustrates the Pearson and Spearman correlation coefficients for all the answers of each question in Mohler dataset arranged according to their ids.
+
+![](images/correlation_coefficients.png)
 
 
 # Future Work
